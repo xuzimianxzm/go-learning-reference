@@ -13,3 +13,4 @@
 
 # customized
 *.sum
+.DS_Store  
