@@ -18,4 +18,6 @@ func main() {
 	employeePointer.UpdateFirstNameWithPoint("any")
 	fmt.Println("After call UpdateFirstNameWithPoint,point:", employee.ToString())
 	fmt.Println("After call UpdateFirstNameWithPoint,employ:", employeePointer.ToString())
+	// &variable 返回这个变量所指向的内存地址， *variable 返回这个内存地址所指向的值
+	fmt.Println(&employeePointer, " ", *employeePointer)
 }
