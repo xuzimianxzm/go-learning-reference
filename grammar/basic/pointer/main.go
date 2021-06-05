@@ -5,6 +5,9 @@ import (
 	. "xuzimian.com/grammar/basic/person"
 )
 
+/*  '*variable' 语法是将内存地址转换成该内存地址中存放的值
+ *  '&variable' 语法是将变量的值转换成改变量的内存地址
+ */
 func main() {
 	employee := Employee{ManagerID: 1,
 		Person: Person{ID: 1, FirstName: "xu", LastName: "zimian", Address: "wuhan"},
