@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"xuzimian.com/greetings"
+	"xuzimian.com/grammar/module/greetings"
 )
 
 func main() {
