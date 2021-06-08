@@ -28,6 +28,8 @@ func (e Employee) UpdateFirstName(firstName string) {
 	e.FirstName = firstName
 }
 
+// UpdateFirstNameWithPoint /**
+// any time we pass a value to a function, either as a receiver or as an argument, that data is copied in memory.
 func (e *Employee) UpdateFirstNameWithPoint(firstName string) {
 	(*e).FirstName = firstName
 }
