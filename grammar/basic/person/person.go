@@ -29,5 +29,9 @@ func (e Employee) UpdateFirstName(firstName string) {
 }
 
 func (e *Employee) UpdateFirstNameWithPoint(firstName string) {
-	(e).FirstName = firstName
+	(*e).FirstName = firstName
+}
+
+func (e *Employee) UpdateLastNameWithPoint(LastName string) {
+	e.LastName = LastName
 }
