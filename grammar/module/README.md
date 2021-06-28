@@ -1,9 +1,13 @@
 ### Run Code Command to Create module
 
+> The Dependent module
+
 ```shell
 cd ./greetings
 go mod init xuzimian.com/greetings
 ```
+
+> Used the Dependent module
 
 ```shell
 cd  ./hello
@@ -14,10 +18,10 @@ go mod edit -replace=xuzimian.com/greetings=../greetings
 # but not yet tracked in the module.
 go mod tidy
 
-go run hello.go 
-# or 
+go run hello.go
+# or
 go build
-./hello 
-# or 
+./hello
+# or
 go run .
 ```
