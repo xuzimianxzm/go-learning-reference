@@ -27,4 +27,8 @@ go doc -all regexp | grep -i item-name
 
 Notes: Don't use the import . notation, which can simplify tests that must run outside the package they are testing, but should otherwise be avoided.
 
-## Getters
+## Interface names
+
+- one-method interfaces are named by the method name plus an -er suffix or similar modification to construct an agent noun: Reader, Writer, Formatter, CloseNotifier etc.
+
+## 
