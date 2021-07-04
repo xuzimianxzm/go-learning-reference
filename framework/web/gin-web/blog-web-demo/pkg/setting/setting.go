@@ -7,52 +7,67 @@ import (
 	"github.com/go-ini/ini"
 )
 
-var (
-	AppConfiguration *ini.File
+type App struct {
+	JwtSecret       string
+	PageSize        int
+	RuntimeRootPath string
 
-	RunMode string
+	ImagePrefixUrl string
+	ImageSavePath  string
+	ImageMaxSize   int
+	ImageAllowExts []string
 
-	HTTPPort     int
+	LogSavePath string
+	LogSaveName string
+	LogFileExt  string
+	TimeFormat  string
+}
+
+var AppSetting = &App{}
+
+type Server struct {
+	RunMode      string
+	HttpPort     int
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
+}
 
-	PageSize  int
-	JwtSecret string
-)
+var ServerSetting = &Server{}
 
-func init() {
-	var err error
-	AppConfiguration, err = ini.Load("config/app.ini")
+type Database struct {
+	Type        string
+	User        string
+	Password    string
+	Host        string
+	Name        string
+	TablePrefix string
+}
+
+var DatabaseSetting = &Database{}
+
+func Setup() {
+	appConfiguration, err := ini.Load("conf/app.ini")
 	if err != nil {
 		log.Fatalf("Fail to parse 'conf/app.ini': %v", err)
 	}
 
-	LoadBase()
-	LoadServer()
-	LoadApp()
-}
-
-func LoadBase() {
-	RunMode = AppConfiguration.Section("").Key("RUN_MODE").MustString("debug")
-}
-
-func LoadServer() {
-	sec, err := AppConfiguration.GetSection("server")
+	err = appConfiguration.Section("app").MapTo(AppSetting)
 	if err != nil {
-		log.Fatalf("Fail to get section 'server': %v", err)
+		log.Fatalf("appConfiguration.MapTo AppSetting err: %v", err)
 	}
 
-	HTTPPort = sec.Key("HTTP_PORT").MustInt(8000)
-	ReadTimeout = time.Duration(sec.Key("READ_TIMEOUT").MustInt(60)) * time.Second
-	WriteTimeout = time.Duration(sec.Key("WRITE_TIMEOUT").MustInt(60)) * time.Second
-}
+	AppSetting.ImageMaxSize = AppSetting.ImageMaxSize * 1024 * 1024
 
-func LoadApp() {
-	sec, err := AppConfiguration.GetSection("app")
+	err = appConfiguration.Section("server").MapTo(ServerSetting)
 	if err != nil {
-		log.Fatalf("Fail to get section 'app': %v", err)
+		log.Fatalf("appConfiguration.MapTo ServerSetting err: %v", err)
 	}
 
-	JwtSecret = sec.Key("JWT_SECRET").MustString("!@)*#)!@U#@*!@!)")
-	PageSize = sec.Key("PAGE_SIZE").MustInt(10)
+	ServerSetting.ReadTimeout = ServerSetting.ReadTimeout * time.Second
+	ServerSetting.WriteTimeout = ServerSetting.WriteTimeout * time.Second
+
+	err = appConfiguration.Section("database").MapTo(DatabaseSetting)
+	if err != nil {
+		log.Fatalf("appConfiguration.MapTo DatabaseSetting err: %v", err)
+	}
 }

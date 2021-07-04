@@ -35,10 +35,10 @@ func startUpCanShutdownServer() {
 	*/
 
 	server := &http.Server{
-		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
+		Addr:           fmt.Sprintf(":%d", setting.ServerSetting.HttpPort),
 		Handler:        router,
-		ReadTimeout:    setting.ReadTimeout,
-		WriteTimeout:   setting.WriteTimeout,
+		ReadTimeout:    setting.ServerSetting.ReadTimeout,
+		WriteTimeout:   setting.ServerSetting.WriteTimeout,
 		MaxHeaderBytes: 1 << 20,
 	}
 
@@ -64,8 +64,8 @@ func startUpCanShutdownServer() {
 }
 
 func startUpEndlessServe() {
-	endless.DefaultReadTimeOut = setting.ReadTimeout
-	endless.DefaultWriteTimeOut = setting.WriteTimeout
+	endless.DefaultReadTimeOut = setting.ServerSetting.ReadTimeout
+	endless.DefaultWriteTimeOut = setting.ServerSetting.WriteTimeout
 	endless.DefaultMaxHeaderBytes = 1 << 20
 	server := endless.NewServer(getEndpoint(), routers.InitRouter())
 	server.BeforeBegin = func(add string) {
@@ -79,5 +79,5 @@ func startUpEndlessServe() {
 }
 
 func getEndpoint() string {
-	return fmt.Sprintf(":%d", setting.HTTPPort)
+	return fmt.Sprintf(":%d", setting.ServerSetting.HttpPort)
 }

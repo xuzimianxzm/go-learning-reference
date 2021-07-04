@@ -17,7 +17,7 @@ func InitRouter() *gin.Engine {
 
 	engine.Use(gin.Recovery())
 
-	gin.SetMode(setting.RunMode)
+	gin.SetMode(setting.ServerSetting.RunMode)
 
 	engine.GET("/auth", api.GetAuth)
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
