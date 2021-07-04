@@ -121,3 +121,15 @@ gin-swagger 给出的范例：
 // @Failure 404 {object} web.APIError "Can not find ID"
 // @Router /testapi/get-string-by-int/{some_id} [get]
 ````
+
+### Docker
+
+构建 Scratch 镜像 Scratch 镜像，简洁、小巧，基本是个空镜像
+
+mysql docker image:
+
+````shell
+docker pull mysql
+docker run --link mysql:mysql -p 8000:8000 gin-blog-docker-scratch
+docker run --link mysql:mysql -p 8000:8000 blog-web-demo
+````
