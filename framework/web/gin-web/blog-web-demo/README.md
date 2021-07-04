@@ -12,6 +12,8 @@
  go get -u github.com/go-sql-driver/mysql
  
  go get -u github.com/astaxie/beego/validation
+ 
+ go get -u github.com/dgrijalva/jwt-go
 
  go mod tidy
 ```
