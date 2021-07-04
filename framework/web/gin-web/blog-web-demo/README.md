@@ -16,6 +16,11 @@
  go get -u github.com/dgrijalva/jwt-go
  
  go get -u github.com/fvbock/endless
+ 
+ go get -u github.com/swaggo/swag/cmd/swag@v1.6.5
+ go get -u github.com/swaggo/gin-swagger@v1.2.0 
+ go get -u github.com/swaggo/files
+ go get -u github.com/alecthomas/template
 
  go mod tidy
 ```
@@ -82,3 +87,37 @@ endless server 监听以下几种信号量：
 - syscall.SIGUSR2：触发 hammerTime
 - syscall.SIGINT/syscall.SIGTERM：触发服务器关闭（会完成正在运行的请求）
 - endless 正正是依靠监听这些信号量，完成管控的一系列动作
+
+### Swagger
+
+在项目根目录中，执行初始化命令
+
+````shell
+swag init
+````
+
+完毕后会在项目根目录下生成docs
+
+```
+docs/
+├── docs.go
+└── swagger
+    ├── swagger.json
+    └── swagger.yaml
+```
+
+- 编写 API 注释，Swagger 中需要将相应的注释或注解编写到方法上，再利用生成器自动生成说明文件。
+
+gin-swagger 给出的范例：
+
+````go
+// @Summary Add a new pet to the store
+// @Description get string by ID
+// @Accept  json
+// @Produce  json
+// @Param   some_id     path    int     true        "Some ID"
+// @Success 200 {string} string	"ok"
+// @Failure 400 {object} web.APIError "We need ID!!"
+// @Failure 404 {object} web.APIError "Can not find ID"
+// @Router /testapi/get-string-by-int/{some_id} [get]
+````
