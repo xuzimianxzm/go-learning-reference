@@ -76,6 +76,17 @@ Tag   Tag `json:"tag"`
 db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
 ````
 
+GORM 本身是由回调驱动的，所以我们可以根据需要完全定制 GORM，以此达到我们的目的，如下：
+
+- 注册一个新的回调
+- 删除现有的回调
+- 替换现有的回调
+- 注册回调的顺序
+
+````go
+db.Callback().Delete().Replace("gorm:delete", deleteCallback)
+````
+
 ### endless
 
 借助 fvbock/endless 来实现 Golang HTTP/HTTPS 服务重新启动的零停机
