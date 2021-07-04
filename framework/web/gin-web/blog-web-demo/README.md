@@ -47,3 +47,22 @@ gorm 所支持的回调方法：
 - 更新：BeforeSave、BeforeUpdate、AfterUpdate、AfterSave
 - 删除：BeforeDelete、AfterDelete
 - 查询：AfterFind
+
+````go
+type Article struct {
+TagID int `json:"tag_id" gorm:"index"`
+Tag   Tag `json:"tag"`
+}
+````
+
+- gorm:index，用于声明这个字段为索引，如果你使用了自动迁移功能则会有所影响，在不使用则无影响
+- Tag 字段，实际是一个嵌套的struct，它利用TagID与Tag模型相互关联，在执行查询的时候，能够达到Article、Tag关联查询的功能。 Article结构体成员是Tag，可以通过Related进行关联查询
+- gorm会通过类名+ID 的方式去找到这两个类之间的关联关系
+
+````go
+/*
+	Preload就是一个预加载器，它会执行两条 SQL，分别是SELECT * FROM blog_articles;和SELECT * FROM blog_tag WHERE id IN (1,2,3,4);
+	那么在查询出结构后，gorm内部处理对应的映射逻辑，将其填充到Article的Tag中，会特别方便，并且避免了循环查询
+*/
+db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
+````
