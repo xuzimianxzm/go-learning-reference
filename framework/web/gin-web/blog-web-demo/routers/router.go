@@ -3,22 +3,29 @@ package routers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/xuzimian/blog-web-demo/pkg/setting"
+	"github.com/xuzimian/blog-web-demo/routers/api"
 )
 
 func InitRouter() *gin.Engine {
-	r := gin.New()
+	engine := gin.New()
 
-	r.Use(gin.Logger())
+	engine.Use(gin.Logger())
 
-	r.Use(gin.Recovery())
+	engine.Use(gin.Recovery())
 
 	gin.SetMode(setting.RunMode)
 
-	r.GET("/test", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "test",
-		})
-	})
+	apis := engine.Group("/api")
+	{
+		//获取标签列表
+		apis.GET("/tags", api.GetTags)
+		//新建标签
+		apis.POST("/tags", api.AddTag)
+		//更新指定标签
+		apis.PUT("/tags/:id", api.EditTag)
+		//删除指定标签
+		apis.DELETE("/tags/:id", api.DeleteTag)
+	}
 
-	return r
+	return engine
 }

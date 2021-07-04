@@ -15,6 +15,10 @@
 ```
 
 ## Knowledge Points
+- Gin：Golang 的一个微框架，性能极佳。
+- beego-validation：本节采用的 beego 的表单验证库，中文文档。
+- gorm，对开发人员友好的 ORM 框架，英文文档
+- com，一个小而美的工具包。
 
 ### Standard Library
 
