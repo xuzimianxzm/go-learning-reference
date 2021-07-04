@@ -10,11 +10,14 @@
  go get -u github.com/jinzhu/gorm 
  
  go get -u github.com/go-sql-driver/mysql
+ 
+ go get -u github.com/astaxie/beego/validation
 
  go mod tidy
 ```
 
 ## Knowledge Points
+
 - Gin：Golang 的一个微框架，性能极佳。
 - beego-validation：本节采用的 beego 的表单验证库，中文文档。
 - gorm，对开发人员友好的 ORM 框架，英文文档
@@ -35,3 +38,12 @@
 
 
 * http.ListenAndServe 和 gin的Engine.Run() 没有本质区别，都是执行的http.ListenAndServe()
+
+### Gorm
+
+gorm 所支持的回调方法：
+
+- 创建：BeforeSave、BeforeCreate、AfterCreate、AfterSave
+- 更新：BeforeSave、BeforeUpdate、AfterUpdate、AfterSave
+- 删除：BeforeDelete、AfterDelete
+- 查询：AfterFind

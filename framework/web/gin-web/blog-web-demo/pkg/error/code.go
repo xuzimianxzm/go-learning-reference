@@ -1,4 +1,4 @@
-package e
+package error
 
 const (
 	SUCCESS        = 200
