@@ -1,13 +1,24 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/fvbock/endless"
 	"github.com/xuzimian/blog-web-demo/pkg/setting"
 	"github.com/xuzimian/blog-web-demo/routers"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
+	startUpEndlessServe()
+}
+
+func startUpCanShutdownServer() {
 	router := routers.InitRouter()
 
 	/*
@@ -22,7 +33,8 @@ func main() {
 		ConnState：指定一个可选的回调函数，当客户端连接发生变化时调用
 		ErrorLog：指定一个可选的日志记录器，用于接收程序的意外行为和底层系统错误；如果未设置或为nil则默认以日志包的标准日志记录器完成（也就是在控制台输出）
 	*/
-	s := &http.Server{
+
+	server := &http.Server{
 		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
 		Handler:        router,
 		ReadTimeout:    setting.ReadTimeout,
@@ -30,5 +42,42 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	s.ListenAndServe()
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Printf("Listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+
+	log.Println("Shutdown Server ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+
+	log.Println("Server exiting")
+}
+
+func startUpEndlessServe() {
+	endless.DefaultReadTimeOut = setting.ReadTimeout
+	endless.DefaultWriteTimeOut = setting.WriteTimeout
+	endless.DefaultMaxHeaderBytes = 1 << 20
+	server := endless.NewServer(getEndpoint(), routers.InitRouter())
+	server.BeforeBegin = func(add string) {
+		log.Printf("Actual pid is %d", syscall.Getpid())
+	}
+
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Printf("Server err: %v", err)
+	}
+}
+
+func getEndpoint() string {
+	return fmt.Sprintf(":%d", setting.HTTPPort)
 }

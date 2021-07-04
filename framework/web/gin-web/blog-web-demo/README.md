@@ -14,6 +14,8 @@
  go get -u github.com/astaxie/beego/validation
  
  go get -u github.com/dgrijalva/jwt-go
+ 
+ go get -u github.com/fvbock/endless
 
  go mod tidy
 ```
@@ -68,3 +70,15 @@ Tag   Tag `json:"tag"`
 */
 db.Preload("Tag").Where(maps).Offset(pageNum).Limit(pageSize).Find(&articles)
 ````
+
+### endless
+
+借助 fvbock/endless 来实现 Golang HTTP/HTTPS 服务重新启动的零停机
+
+endless server 监听以下几种信号量：
+
+- syscall.SIGHUP：触发 fork 子进程和重新启动
+- syscall.SIGUSR1/syscall.SIGTSTP：被监听，但不会触发任何动作
+- syscall.SIGUSR2：触发 hammerTime
+- syscall.SIGINT/syscall.SIGTERM：触发服务器关闭（会完成正在运行的请求）
+- endless 正正是依靠监听这些信号量，完成管控的一系列动作
