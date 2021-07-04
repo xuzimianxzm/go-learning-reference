@@ -2,18 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/xuzimian/blog-web-demo/pkg/setting"
+	"github.com/xuzimian/blog-web-demo/routers"
 	"net/http"
 )
 
 func main() {
-	engine := gin.Default()
-	engine.GET("/test", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "test",
-		})
-	})
+	router := routers.InitRouter()
 
 	/*
 		Addr：监听的 TCP 地址，格式为:8000
@@ -29,7 +24,7 @@ func main() {
 	*/
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
-		Handler:        engine,
+		Handler:        router,
 		ReadTimeout:    setting.ReadTimeout,
 		WriteTimeout:   setting.WriteTimeout,
 		MaxHeaderBytes: 1 << 20,
