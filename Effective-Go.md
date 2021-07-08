@@ -163,3 +163,17 @@ There are major differences between the ways arrays work in Go and C. In Go,
 type Transform [3][3]float64  // A 3x3 array, really an array of arrays.
 type LinesOfText [][]byte     // A slice of byte slices.
 ```
+
+### Maps
+
+An attempt to fetch a map value with a key that is not present in the map will return the zero value for the type of the entries in the map.For instance, if the map contains integers, looking up a non-existent key will return 0.
+
+Sometimes you need to distinguish a missing entry from a zero value. Is there an entry for "UTC" or is that 0 because it's not in the map at all? You can discriminate with a form of multiple assignment.
+
+```go
+var seconds int
+var ok bool
+seconds, ok = timeZone[tz]
+```
+
+For obvious reasons this is called the “comma ok” idiom. In this example, if tz is present, seconds will be set appropriately and ok will be true; if not, seconds will be set to zero and ok will be false.
