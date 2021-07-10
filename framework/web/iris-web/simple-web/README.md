@@ -17,3 +17,4 @@ go run simple-mvc.go type.go
 
 - https://github.com/JabinGP/demo-chatroom
 - https://github.com/iris-contrib/examples
+- https://www.iris-go.com/docs/#/
