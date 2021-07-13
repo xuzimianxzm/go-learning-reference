@@ -182,32 +182,32 @@ For obvious reasons this is called the “comma ok” idiom. In this example, if
 
 Our String method is able to call Sprintf because the print routines are fully reentrant and can be wrapped this way. There is one important detail to understand about this approach, however: don't construct a String method by calling Sprintf in a way that will recur into your String method indefinitely.
 
-````go
+```go
 type MyString string
 
 func (m MyString) String() string {
     return fmt.Sprintf("MyString=%s", m) // Error: will recur forever.
 }
-````
+```
 
 It's also easy to fix: convert the argument to the basic string type, which does not have the method.
 
-````go
+```go
 type MyString string
 func (m MyString) String() string {
     return fmt.Sprintf("MyString=%s", string(m)) // OK: note conversion.
 }
-````
+```
 
 ## Append
 
-````go
+```go
 func append(slice []T, elements ...T) []T
-````
+```
 
 where T is a placeholder for any given type. You can't actually write a function in Go where the type T is determined by the caller. That's why append is built in: it needs support from the compiler.
 
-````go
+```go
 // append element
 x := []int{1,2,3}
 x = append(x, 4, 5, 6)
@@ -218,4 +218,8 @@ x := []int{1,2,3}
 y := []int{4,5,6}
 x = append(x, y...)
 fmt.Println(x)
-````
+```
+
+## Constants
+
+They are created at compile time, even when defined as locals in functions, and can only be numbers, characters (runes), strings or booleans. Because of the compile-time restriction, the expressions that define them must be constant expressions, evaluatable by the compiler. For instance, 1<<3 is a constant expression, while math.Sin(math.Pi/4) is not because the function call to math.Sin needs to happen at run time.
