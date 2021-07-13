@@ -14,4 +14,6 @@ go get github.com/spf13/viper
 go get xorm.io/core@v0.7.2
 
 go get xorm.io/xorm@v0.8.1
+
+go get github.com/go-sql-driver/mysql
 ````

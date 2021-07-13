@@ -8,6 +8,7 @@ import (
 	"log"
 	"sync"
 
+	_ "github.com/go-sql-driver/mysql"
 	"xorm.io/core"
 	"xorm.io/xorm"
 )
