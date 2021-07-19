@@ -10,7 +10,6 @@ require (
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/kataras/iris/v12 v12.2.0-alpha2.0.20210705170737-afb15b860124
 	github.com/spf13/viper v1.8.1
-	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/yudai/pp v2.0.1+incompatible // indirect
 	xorm.io/builder v0.3.8 // indirect
 	xorm.io/core v0.7.3
