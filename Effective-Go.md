@@ -262,7 +262,7 @@ because the function call to math.Sin needs to happen at run time.
 In Go, enumerated constants are created using the iota enumerator. Since iota can be part of an expression and
 expressions can be implicitly repeated, it is easy to build intricate sets of values.
 
-````go
+```go
 type ByteSize float64
 
 const (
@@ -298,4 +298,52 @@ return fmt.Sprintf("%.2fKB", b/KB)
 }
 return fmt.Sprintf("%.2fB", b)
 }
-````
+```
+
+## 类型命名和类型声明的区别
+
+- 类型别名的语法: type identifier = Type
+- 类型定义的语法: type type-name type-underlying
+- 类型别名和原类型是相同的，而类型定义和原类型是不同的两个类型。
+  > 完全一样(identical types)意味着这两种类型的数据可以互相赋值，而类型定义要和原始类型赋值的时候需要类型转换(Conversion T(x))。
+
+### 类型循环
+
+类型别名在定义的时候不允许出现循环定义别名的情况，如下面所示：
+
+```go
+type T1 = T2
+type T2 = T1
+
+// or:
+type T1 = struct {
+	next *T2
+}
+type T2 = T1
+```
+
+### 方法集
+
+既然类型别名和原始类型是相同的，那么它们的方法集也是相同的,下面的例子中 T1 和 T3 都有 say 和 greeting 方法:
+
+```go
+type T1 struct{}
+type T3 = T1
+func (t1 T1) say(){}
+func (t3 *T3) greeting(){}
+func main() {
+	var t1 T1
+	// var t2 T2
+	var t3 T3
+	t1.say()
+	t1.greeting()
+	t3.say()
+	t3.greeting()
+}
+```
+
+如果类型别名和原始类型定义了相同的方法，代码编译的时候会报错，因为有重复的方法定义。
+
+### byte 和 rune 类型
+
+在 Go 1.9 中， 内部其实使用了类型别名的特性。 比如内建的 byte 类型，其实是 uint8 的类型别名，而 rune 其实是 int32 的类型别名。
