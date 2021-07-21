@@ -317,7 +317,7 @@ type T2 = T1
 
 // or:
 type T1 = struct {
-	next *T2
+next *T2
 }
 type T2 = T1
 ```
@@ -332,13 +332,13 @@ type T3 = T1
 func (t1 T1) say(){}
 func (t3 *T3) greeting(){}
 func main() {
-	var t1 T1
-	// var t2 T2
-	var t3 T3
-	t1.say()
-	t1.greeting()
-	t3.say()
-	t3.greeting()
+var t1 T1
+// var t2 T2
+var t3 T3
+t1.say()
+t1.greeting()
+t3.say()
+t3.greeting()
 }
 ```
 
@@ -347,3 +347,33 @@ func main() {
 ### byte 和 rune 类型
 
 在 Go 1.9 中， 内部其实使用了类型别名的特性。 比如内建的 byte 类型，其实是 uint8 的类型别名，而 rune 其实是 int32 的类型别名。
+
+## The init function
+
+Finally, each source file can define its own niladic init function to set up whatever state is required. (Actually each
+file can have multiple init functions.) And finally means finally: init is called after all the variable declarations in
+the package have evaluated their initializers, and those are evaluated only after all the imported packages have been
+initialized.
+
+Besides initializations that cannot be expressed as declarations, a common use of init functions is to verify or repair
+correctness of the program state before real execution begins.
+
+````go
+func init() {
+    if user == "" {
+        log.Fatal("$USER not set")
+    }
+    if home == "" {
+        home = "/home/" + user
+    }
+    if gopath == "" {
+        gopath = home + "/go"
+    }
+    // gopath may be overridden by --gopath flag on command line.
+    flag.StringVar(&gopath, "gopath", gopath, "override default GOPATH")
+}
+````
+
+## Methods
+
+
