@@ -358,7 +358,7 @@ initialized.
 Besides initializations that cannot be expressed as declarations, a common use of init functions is to verify or repair
 correctness of the program state before real execution begins.
 
-````go
+```go
 func init() {
     if user == "" {
         log.Fatal("$USER not set")
@@ -372,8 +372,10 @@ func init() {
     // gopath may be overridden by --gopath flag on command line.
     flag.StringVar(&gopath, "gopath", gopath, "override default GOPATH")
 }
-````
+```
 
 ## Methods
 
+### Pointers vs. Values
 
+- The rule about pointers vs. values for receivers is that value methods can be invoked on pointers and values, but pointer methods can only be invoked on pointers.This rule arises because pointer methods can modify the receiver; invoking them on a value would cause the method to receive a copy of the value, so any modifications would be discarded.The language therefore disallows this mistake.
