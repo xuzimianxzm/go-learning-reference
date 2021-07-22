@@ -491,3 +491,59 @@ if str, ok := value.(string); ok {
 ```
 
 #### Generality
+
+If a type exists only to implement an interface and will never have exported methods beyond that interface, there is no need to export the type itself. Exporting just the interface makes it clear the value has no interesting behavior beyond what is described in the interface. It also avoids the need to repeat the documentation on every instance of a common method.
+
+```go
+/* Ver1 与 Ver2 是 Version 的两种不同的具体实现。
+ * NewShow 接受一个 Version 作为参数，并返回一个 Show。
+ * NewShow 不管 Version 的具体实现，只要是 Version 都可以接受，
+ *         并且不管 Show 的具体实现，本例子虽然只给出了一种 Show 的实现 (ShowVer)
+ *         但事实上换另一种实现也是可以的。
+ */
+
+package main
+
+import "fmt"
+
+type Version interface {
+    Is() string
+}
+
+type Show interface {
+    VerNum()
+}
+
+type ShowVer struct{
+    V string
+}
+func (s ShowVer) VerNum() {
+    fmt.Println("Ver.", s.V)
+}
+
+type Ver1 struct {
+    V string
+}
+func (v Ver1) Is() string {
+    return fmt.Sprint(v.V)
+}
+
+type Ver2 struct{}
+func (v Ver2) Is() string {
+    return "2"
+}
+
+func main() {
+    ver1 := Ver1{"1"}
+    ver2 := Ver2{}
+    show1 := NewShow(ver1)
+    show2 := NewShow(ver2)
+    show1.VerNum()
+    show2.VerNum()
+}
+
+func NewShow(ver Version) Show {
+    v := ver.Is()
+    return ShowVer{v}
+}
+```
