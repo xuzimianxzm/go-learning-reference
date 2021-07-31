@@ -788,7 +788,9 @@ go f()
 ### Channel-based Communication
 
 Channel通信是在Goroutine之间进行同步的主要方法。在无缓存的Channel上的每一次发送操作都有与其对应的接收操作相配对，发送和接收操作通常发生在不
-同的Goroutine上（在同一个Goroutine上执行2个操作很容易导致死锁）。无缓存的Channel上的发送操作总在对应的接收操作完成前发生.
+同的Goroutine上（在同一个Goroutine上执行2个操作很容易导致死锁）。
+
+- 无缓存的Channel上的发送操作总在对应的接收操作 [完成前] 发生,对于从无缓存Channel进行的接收，发生在对该Channel进行的发送 [完成之前]。
 
 ```go
 var done = make(chan bool)
@@ -825,5 +827,3 @@ go aGoroutine()
 println(msg)
 }
 ```
-
-> 对于从无缓存Channel进行的接收，发生在对该Channel进行的发送完成之前。
