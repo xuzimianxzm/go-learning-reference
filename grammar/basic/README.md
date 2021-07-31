@@ -348,3 +348,482 @@ func main() {
 testing.TB接口的），然后通过testing.TB接口来调用我们自己的Fatal方法。
 
 这种通过嵌入匿名接口或嵌入匿名指针对象来实现继承的做法其实是一种纯虚继承，我们继承的只是接口指定的规范，真正的实现在运行的时候才被注入
+
+## Channel
+
+Channel是Go中的一个核心类型，你可以把它看成一个管道，通过它并发核心单元就可以发送或者接收数据进行通讯(communication)。
+
+它的操作符是箭头:<-
+
+```go
+ch <- v   // 发送值v到Channel ch中
+v := <-ch // 从Channel ch中接收数据，并将数据赋值给v
+```
+
+### Channel Tyep
+
+Channel类型的定义格式如下:
+
+```go
+ChannelType = ( "chan" | "chan" "<-" | "<-" "chan" ) ElementType 
+```
+
+它包括三种类型的定义。可选的<-代表channel的方向。如果没有指定方向，那么Channel就是双向的，既可以接收数据，也可以发送数据。
+
+```go
+chan T         // 可以接收和发送类型为 T 的数据
+chan<- float64 // 只可以用来发送 float64 类型的数据
+<-chan int     // 只可以用来接收 int 类型的数据
+```
+
+<-总是优先和最左边的类型结合。
+
+```go
+chan<- chan int   // 等价 chan<- (chan int)
+chan<- <-chan int // 等价 chan<- (<-chan int)
+<-chan<-chan int // 等价 <-chan (<-chan int)
+chan (<-chan int)
+```
+
+容量(capacity)代表Channel容纳的最多的元素的数量，代表Channel的缓存的大小。 如果没有设置容量，或者容量设置为0, 说明Channel没有缓存，只有sender和receiver都准备好了后它们的通讯(
+communication)才会发生(Blocking)。 如果设置了缓存，就有可能不发生阻塞， 只有buffer满了后 send才会阻塞， 而只有缓存空了后receive才会阻塞。一个nil channel不会通信。
+
+- 可以在多个goroutine从/往 一个channel 中 receive/send 数据, 不必考虑额外的同步措施。
+- Channel可以作为一个先入先出(FIFO)的队列，接收的数据和发送的数据的顺序是一致的。
+
+channel的 receive支持 multi-valued assignment，如:
+
+```go
+v, ok := <-ch
+```
+
+它可以用来检查Channel是否已经被关闭了,如果OK 是false，表明接收的v是产生的零值，这个channel被关闭了或者为空。
+
+### Send Statement
+
+send语句用来往Channel中发送数据， 如ch <- 3。 它的定义如下:
+
+```go
+SendStatement = Channel "<-" Expression
+Channel = Expression 
+```
+
+在通讯(communication)开始前channel和expression必先求值出来(evaluated)，比如下面的(3+4)先计算出7然后再发送给channel:
+
+```go
+c := make(chan int)
+defer close(c)
+go func () { c <- 3 + 4 }()
+i := <-c
+fmt.Println(i)
+```
+
+send被执行前(proceed)通讯(communication)一直被阻塞着。如前所言，无缓存的channel只有在receiver准备好后send才被执行。如果有缓存，并且缓存 未满，则send会被执行。
+
+- 往一个已经被close的channel中继续发送数据会导致run-time panic。
+- 往nil channel中发送数据会一致被阻塞着。
+
+### Receive
+
+<- ch 用来从channel ch中接收数据，这个表达式会一直被block,直到有数据可以接收。
+
+- 从一个nil channel中接收数据会一直被block。
+- 从一个被close的channel中接收数据不会被阻塞，而是立即返回，接收完已发送的数据后会返回元素类型的零值(zero value)。
+
+### Blocking
+
+默认情况下，发送和接收会一直阻塞着，直到另一方准备好。这种方式可以用来在gororutine中进行同步，而不必使用显示的锁或者条件变量。
+
+```go
+import "fmt"
+func sum(s []int, c chan int) {
+sum := 0
+for _, v := range s {
+sum += v
+}
+c <- sum // send sum to c
+}
+func main() {
+s := []int{7, 2, 8, -9, 4, 0}
+c := make(chan int)
+go sum(s[:len(s)/2], c)
+go sum(s[len(s)/2:], c)
+x, y := <-c, <-c // 这句会一直等待计算结果发送到channel中。
+fmt.Println(x, y, x+y)
+}
+```
+
+### Buffered Channels
+
+make的第二个参数指定缓存的大小：ch := make(chan int, 100)。 通过缓存的使用，可以尽量避免阻塞，提供应用的性能。
+
+### Close
+
+内建的close方法可以用来关闭channel。 总结一下channel关闭后sender的receiver操作。
+
+- 如果channel c已经被关闭,继续往它发送数据会导致panic: send on closed channel:
+
+```go
+import "time"
+func main() {
+go func () {
+time.Sleep(time.Hour)
+}()
+c := make(chan int, 10)
+c <- 1
+c <- 2
+close(c)
+c <- 3
+}
+```
+
+但是从这个关闭的channel中不但可以读取出已发送的数据，还可以不断的读取零值:
+
+```go
+c := make(chan int, 10)
+c <- 1
+c <- 2
+close(c)
+fmt.Println(<-c) //1
+fmt.Println(<-c) //2
+fmt.Println(<-c) //0
+fmt.Println(<-c) //0
+```
+
+### Range
+
+for range语句可以处理Channel:
+
+```go
+func main() {
+go func () {
+time.Sleep(1 * time.Hour)
+}()
+c := make(chan int)
+go func () {
+for i := 0; i < 10; i = i + 1 {
+c <- i
+}
+close(c)
+}()
+for i := range c {
+fmt.Println(i)
+}
+fmt.Println("Finished")
+}
+```
+
+range c产生的迭代值为Channel中发送的值，它会一直迭代直到channel被关闭。上面的例子中如果把close(c)注释掉，程序会一直阻塞在for range那一行。
+
+### Select
+
+select语句选择一组可能的send操作和receive操作去处理。它类似switch,但是只是用来处理通讯(communication)操作。 它的case可以是send语句，也可以是receive语句，亦或者default。
+
+```go
+import "fmt"
+func fibonacci(c, quit chan int) {
+x, y := 0, 1
+for {
+select {
+case c <- x:
+x, y = y, x+y
+case <-quit:
+fmt.Println("quit")
+return
+}
+}
+}
+func main() {
+c := make(chan int)
+quit := make(chan int)
+go func () {
+for i := 0; i < 10; i++ {
+fmt.Println(<-c)
+}
+quit <- 0
+}()
+fibonacci(c, quit)
+}
+```
+
+如果有同时多个case去处理,比如同时有多个channel可以接收数据，那么Go会伪随机的选择一个case处理(pseudo-random)。如果没有case需要处理，则会选 择default去处理，如果default
+case存在的情况下。如果没有default case，则select语句会阻塞，直到某个case需要处理。
+
+需要注意的是，nil channel上的操作会一直被阻塞，如果没有default case,只有nil channel的select会一直被阻塞。
+
+- select语句和switch语句一样，它不是循环，它只会选择一个case来处理，如果想一直处理channel，可以在外面加一个无限的for循环：
+
+```go
+for {
+select {
+case c <- x:
+x, y = y, x+y
+case <-quit:
+fmt.Println("quit")
+return
+}
+}
+```
+
+### Timeout
+
+select有很重要的一个应用就是超时处理。 因为上面我们提到，如果没有case需要处理，select语句就会一直阻塞着。这时候我们可能就需要一个超时操作，用 来处理超时的情况。
+
+下面这个例子我们会在2秒后往channel c1中发送一个数据，但是select设置为1秒超时,因此我们会打印出timeout 1,而不是result 1。
+
+```go
+import "time"
+import "fmt"
+func main() {
+c1 := make(chan string, 1)
+go func () {
+time.Sleep(time.Second * 2)
+c1 <- "result 1"
+}()
+select {
+case res := <-c1:
+fmt.Println(res)
+case <-time.After(time.Second * 1):
+fmt.Println("timeout 1")
+}
+}
+```
+
+其实它利用的是time.After方法，它返回一个类型为<-chan Time的单向的channel，在指定的时间发送一个当前时间给返回的channel中。
+
+### Timer And Ticker
+
+timer是一个定时器，代表未来的一个单一事件，你可以告诉timer你要等待多长时间，它提供一个Channel，在将来的那个时间那个Channel提供了一个时间值。 下面的例子中第二行会阻塞2秒钟左右的时间，直到时间到了才会继续执行。
+
+```go
+timer1 := time.NewTimer(time.Second * 2)
+<-timer1.C
+fmt.Println("Timer 1 expired")
+```
+
+当然如果你只是想单纯的等待的话，可以使用time.Sleep来实现。
+
+还可以使用timer.Stop来停止计时器。
+
+```go
+timer2 := time.NewTimer(time.Second)
+go func () {
+<-timer2.C
+fmt.Println("Timer 2 expired")
+}()
+stop2 := timer2.Stop()
+if stop2 {
+fmt.Println("Timer 2 stopped")
+}
+```
+
+ticker是一个定时触发的计时器，它会以一个间隔(interval)往Channel发送一个事件(当前时间)，而Channel的接收者可以以固定的时间间隔从Channel中读
+取事件。下面的例子中ticker每500毫秒触发一次，你可以观察输出的时间。
+
+```go
+ticker := time.NewTicker(time.Millisecond * 500)
+go func () {
+for t := range ticker.C {
+fmt.Println("Tick at", t)
+}
+}()
+```
+
+## Concurrence-Oriented Programming
+
+常见的并行编程有多种模型，主要有多线程、消息传递等。从理论上来看，多线程和基于消息的并发编程是等价的。由于多线程并发模型可以自然对应到多核的处理器，
+主流的操作系统因此也都提供了系统级的多线程支持，同时从概念上讲多线程似乎也更直观，因此多线程编程模型逐步被吸纳到主流的编程语言特性或语言扩展库中。
+而主流编程语言对基于消息的并发编程模型支持则相比较少，Erlang语言是支持基于消息传递并发编程模型的代表者，它的并发体之间不共享内存。 Go语言是基于 消息并发模型的集大成者，它将基于
+CSP模型的并发编程内置到了语言中，通过一个go关键字就可以轻易地启动一个Goroutine，与Erlang不同的是Go语言的 Goroutine之间是共享内存的。
+
+### Goroutine And System Thread
+
+Goroutine是Go语言特有的并发体，是一种轻量级的线程，由go关键字启动。在真实的Go语言的实现中，goroutine和系统线程也不是等价的。尽管两者的区别实 际上只是一个量的区别，但正是这个量变引发了Go语言并发编程质的飞跃。
+
+首先，每个系统级线程都会有一个固定大小的栈（一般默认可能是2MB），这个栈主要用来保存函数递归调用时参数和局部变量。固定了栈的大小导致了两个问题：一
+是对于很多只需要很小的栈空间的线程来说是一个巨大的浪费，二是对于少数需要巨大栈空间的线程来说又面临栈溢出的风险。针对这两个问题的解决方案是：要么降
+低固定的栈大小，提升空间的利用率；要么增大栈的大小以允许更深的函数递归调用，但这两者是没法同时兼得的。相反，一个Goroutine会以一个很小的栈启动（
+可能是2KB或4KB），当遇到深度递归导致当前栈空间不足时，Goroutine会根据需要动态地伸缩栈的大小（主流实现中栈的最大值可达到1GB）。因为启动的代价很 小，所以我们可以轻易地启动成千上万个Goroutine。
+
+Go的运行时还包含了其自己的调度器，这个调度器使用了一些技术手段，可以在n个操作系统线程上多工调度m个Goroutine。Go调度器的工作和内核的调度是相似
+的，但是这个调度器只关注单独的Go程序中的Goroutine。Goroutine采用的是半抢占式的协作调度，只有在当前Goroutine发生阻塞时才会导致调度；同时发生
+在用户态，调度器会根据具体函数只保存必要的寄存器，切换的代价要比系统线程低得多。运行时有一个runtime.GOMAXPROCS变量，用于控制当前运行正常非阻塞 Goroutine的系统线程数目。
+
+### Atomic Operation
+
+所谓的原子操作就是并发编程中“最小的且不可并行化”的操作。通常，如果多个并发体对同一个共享资源进行的操作是原子的话，那么同一时刻最多只能有一个并发体
+对该资源进行操作。从线程角度看，在当前线程修改共享资源期间，其它的线程是不能访问该资源的。原子操作对于多线程并发编程模型来说，不会发生有别于单线程 的意外情况，共享资源的完整性可以得到保证。
+
+一般情况下，原子操作都是通过“互斥”访问来保证的，通常由特殊的CPU指令提供保护。当然，如果仅仅是想模拟下粗粒度的原子操作，我们可以借助于sync.Mutex 来实现：
+
+```go
+import (
+"sync"
+)
+
+var total struct {
+sync.Mutex
+value int
+}
+
+func worker(wg *sync.WaitGroup) {
+defer wg.Done()
+
+for i := 0; i <= 100; i++ {
+total.Lock()
+total.value += i
+total.Unlock()
+}
+}
+
+func main() {
+var wg sync.WaitGroup
+wg.Add(2)
+go worker(&wg)
+go worker(&wg)
+wg.Wait()
+
+fmt.Println(total.value)
+}
+```
+
+用互斥锁来保护一个数值型的共享资源，麻烦且效率低下。标准库的sync/atomic包对原子操作提供了丰富的支持。我们可以重新实现上面的例子：
+
+```go
+func worker(wg *sync.WaitGroup) {
+defer wg.Done()
+
+var i uint64
+for i = 0; i <= 100; i++ {
+atomic.AddUint64(&total, i)
+}
+}
+```
+
+### Sequential consistent memory model
+
+```go
+var a string
+var done bool
+
+func setup() {
+a = "hello, world"
+done = true
+}
+
+func main() {
+go setup()
+for !done {}
+print(a)
+}
+```
+
+我们创建了setup线程，用于对字符串a的初始化工作，初始化完成之后设置done标志为true。main函数所在的主线程中，通过for !done {}检测done变为true 时，认为字符串初始化工作完成，然后进行字符串的打印工作。
+
+但是Go语言并不保证在main函数中观测到的对done的写入操作发生在对字符串a的写入的操作之后，因此程序很可能打印一个空字符串。更糟糕的是，因为两个线程
+之间没有同步事件，setup线程对done的写入操作甚至无法被main线程看到，main函数有可能陷入死循环中。
+
+在Go语言中，同一个Goroutine线程内部，顺序一致性内存模型是得到保证的。但是不同的Goroutine之间，并不满足顺序一致性内存模型，需要通过明确定义的同
+步事件来作为同步的参考。如果两个事件不可排序，那么就说这两个事件是并发的。为了最大化并行，Go语言的编译器和处理器在不影响上述规定的前提下可能会对执 行语句重新排序（CPU也会对一些指令进行乱序执行）。
+
+比如下面这个程序：
+
+```go
+func main() {
+go println("你好, 世界")
+}
+```
+
+根据Go语言规范，main函数退出时程序结束，不会等待任何后台线程。因为Goroutine的执行和main函数的返回事件是并发的，谁都有可能先发生，所以什么时候 打印，能否打印都是未知的。
+
+用前面的原子操作并不能解决问题，因为我们无法确定两个原子操作之间的顺序。解决问题的办法就是通过同步原语来给两个事件明确排序：
+
+```go
+func main() {
+done := make(chan int)
+
+go func(){
+println("你好, 世界")
+done <- 1
+}()
+
+<-done
+}
+```
+
+当<-done执行时，必然要求done <- 1也已经执行。根据同一个Gorouine依然满足顺序一致性规则，我们可以判断当done <- 1执行时， println("你好, 世界")
+语句必然已经执行完成了。因此，现在的程序确保可以正常打印结果。
+
+### Initialization Sequence
+
+Go程序的初始化和执行总是从main.main函数开始的。但是如果main包里导入了其它的包，则会按照顺序将它们包含进main包里（这里的导入顺序依赖具体实现，
+一般可能是以文件名或包路径名的字符串顺序导入）。如果某个包被多次导入的话，在执行的时候只会导入一次。当一个包被导入时，如果它还导入了其它的包，则先
+将其它的包包含进来，然后创建和初始化这个包的常量和变量。然后就是调用包里的init函数，如果一个包有多个init函数的话，实现可能是以文件名的顺序调用，
+同一个文件内的多个init则是以出现的顺序依次调用（init不是普通函数，可以定义有多个，所以不能被其它函数调用）。最终，在main包的所有包常量、包变量被
+创建和初始化，并且init函数被执行后，才会进入main.main函数，程序开始正常执行。下图是Go程序函数启动顺序的示意图：
+![avatar](https://gitee.com/xuzimian/Image/raw/master/golang/go-Initialization-Sequence.png)
+
+- 在main.main函数执行之前所有代码都运行在同一个Goroutine中，也是运行在程序的主系统线程中。如果某个init函数内部用go关键字启动了新的Goroutine 的话，新的Goroutine和main.main函数是并发执行的
+
+### Goroutine Creating
+
+go语句会在当前Goroutine对应函数返回前创建新的Goroutine. 例如:
+
+```go
+var a string
+
+func f() {
+print(a)
+}
+
+func hello() {
+a = "hello, world"
+go f()
+}
+```
+
+执行go f()语句创建Goroutine和hello函数是在同一个Goroutine中执行, 根据语句的书写顺序可以确定Goroutine的创建发生在hello函数返回之前, 但 是 新创建Goroutine对应的f()
+的执行事件和hello函数返回的事件则是不可排序的，也就是并发的。调用hello可能会在将来的某一时刻打印"hello, world"， 也很可能是在hello函数执行完成后才打印。
+
+### Channel-based Communication
+
+Channel通信是在Goroutine之间进行同步的主要方法。在无缓存的Channel上的每一次发送操作都有与其对应的接收操作相配对，发送和接收操作通常发生在不
+同的Goroutine上（在同一个Goroutine上执行2个操作很容易导致死锁）。无缓存的Channel上的发送操作总在对应的接收操作完成前发生.
+
+```go
+var done = make(chan bool)
+var msg string
+
+func aGoroutine() {
+msg = "你好, 世界"
+done <- true
+}
+
+func main() {
+go aGoroutine()
+<-done
+println(msg)
+}
+```
+
+可保证打印出“hello, world”。该程序首先对msg进行写入，然后在done管道上发送同步信号，随后从done接收对应的同步信号，最后执行println函数。
+
+若在关闭Channel后继续从中接收数据，接收者就会收到该Channel返回的零值。因此在这个例子中，用close(c)关闭管道代替done <- false依然能保证该程 序产生相同的行为。
+
+```go
+var done = make(chan bool)
+var msg string
+
+func aGoroutine() {
+msg = "你好, 世界"
+close(done)
+}
+
+func main() {
+go aGoroutine()
+<-done
+println(msg)
+}
+```
+
+> 对于从无缓存Channel进行的接收，发生在对该Channel进行的发送完成之前。
