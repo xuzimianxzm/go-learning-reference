@@ -790,8 +790,9 @@ go f()
 Channel通信是在Goroutine之间进行同步的主要方法。在无缓存的Channel上的每一次发送操作都有与其对应的接收操作相配对，发送和接收操作通常发生在不
 同的Goroutine上（在同一个Goroutine上执行2个操作很容易导致死锁）。
 
-- [无缓存的]Channel上的发送操作总在对应的接收操作 [完成前] 发生,对于从[无缓存]Channel进行的接收，发生在对该Channel进行的发送 [完成之前]。
-
+- [无缓存的]Channel上的发送操作,总在对应的接收操作 [完成前] 发生;对于从[无缓存]Channel进行的接收，发生在对该Channel进行的发送 [完成之前]。
+  > 即，只要是无缓存的channel,如果先发生的是对其进行接收，则会block,直到对该channel完成了发送操作。如果先发生的是对无缓存的channel进行发送，
+  > 则会block，直到对该channel的接收操作完成。
 ```go
 var done = make(chan bool)
 var msg string
@@ -852,3 +853,20 @@ println(msg)
 首先要明确一个概念：并发不是并行。并发更关注的是程序的设计层面，并发的程序完全是可以顺序执行的，只有在真正的多核CPU上才可能真正地同时运行。并行更
 关注的是程序的运行层面，并行一般是简单的大量重复，例如GPU中对图像处理都会有大量的并行运算。
 
+在一个新的Goroutine中输出“Hello world”，main等待后台线程输出工作完成之后退出,无缓存的管道来实现同步：
+
+```go
+func main() {
+    done := make(chan int)
+
+    go func(){
+        fmt.Println("你好, 世界")
+        <-done
+    }()
+
+    done <- 1
+}
+```
+
+根据Go语言内存模型规范，对于从无缓冲Channel进行的接收，发生在对该Channel进行的发送完成之前。因此，后台线程<-done接收操作完成之后，main线程的 done <-
+1发送操作才可能完成（从而退出main、退出程序），而此时打印工作已经完成了。
