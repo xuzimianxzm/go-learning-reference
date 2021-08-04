@@ -790,7 +790,7 @@ go f()
 Channel通信是在Goroutine之间进行同步的主要方法。在无缓存的Channel上的每一次发送操作都有与其对应的接收操作相配对，发送和接收操作通常发生在不
 同的Goroutine上（在同一个Goroutine上执行2个操作很容易导致死锁）。
 
-- 无缓存的Channel上的发送操作总在对应的接收操作 [完成前] 发生,对于从无缓存Channel进行的接收，发生在对该Channel进行的发送 [完成之前]。
+- [无缓存的]Channel上的发送操作总在对应的接收操作 [完成前] 发生,对于从[无缓存]Channel进行的接收，发生在对该Channel进行的发送 [完成之前]。
 
 ```go
 var done = make(chan bool)
@@ -827,3 +827,28 @@ go aGoroutine()
 println(msg)
 }
 ```
+
+对于 [从] 无缓存Channel进行的接收(注意「非操作」)，发生在对该Channel进行的发送 [完成之前]。
+
+基于上面这个规则可知，交换两个Goroutine中的接收和发送操作也是可以的（但是很危险):
+
+```go
+var done = make(chan bool)
+var msg string
+
+func aGoroutine() {
+msg = "hello, world"
+<- done // 从channel接收,这时候channel 由于还没有接收数据，所以这个 channel 是无缓存的，它会发生在对这个channel 发送数据之前，所以会block。
+}
+func main() {
+go aGoroutine()
+done <- true // 发送消息到 channel
+println(msg)
+}
+```
+
+### Common Concurrence Model
+
+首先要明确一个概念：并发不是并行。并发更关注的是程序的设计层面，并发的程序完全是可以顺序执行的，只有在真正的多核CPU上才可能真正地同时运行。并行更
+关注的是程序的运行层面，并行一般是简单的大量重复，例如GPU中对图像处理都会有大量的并行运算。
+
