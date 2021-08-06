@@ -793,6 +793,7 @@ Channel通信是在Goroutine之间进行同步的主要方法。在无缓存的C
 - [无缓存的]Channel上的发送操作,总在对应的接收操作 [完成前] 发生;对于从[无缓存]Channel进行的接收，发生在对该Channel进行的发送 [完成之前]。
   > 即，只要是无缓存的channel,如果先发生的是对其进行接收，则会block,直到对该channel完成了发送操作。如果先发生的是对无缓存的channel进行发送，
   > 则会block，直到对该channel的接收操作完成。
+
 ```go
 var done = make(chan bool)
 var msg string
@@ -857,20 +858,19 @@ println(msg)
 
 ```go
 func main() {
-    done := make(chan int)
+done := make(chan int)
 
-    go func(){
-        fmt.Println("你好, 世界")
-        <-done
-    }()
+go func(){
+fmt.Println("你好, 世界")
+<-done
+}()
 
-    done <- 1
+done <- 1
 }
 ```
 
 根据Go语言内存模型规范，对于从无缓冲Channel进行的接收，发生在对该Channel进行的发送完成之前。因此，后台线程<-done接收操作完成之后，main线程的 done <-
 1发送操作才可能完成（从而退出main、退出程序），而此时打印工作已经完成了。
-
 
 #### Speed Priority
 
@@ -879,19 +879,19 @@ func main() {
 
 ```go
 func main() {
-    ch := make(chan string, 32)
+ch := make(chan string, 32)
 
-    go func() {
-        ch <- searchByBing("golang")
-    }()
-    go func() {
-        ch <- searchByGoogle("golang")
-    }()
-    go func() {
-        ch <- searchByBaidu("golang")
-    }()
+go func () {
+ch <- searchByBing("golang")
+}()
+go func () {
+ch <- searchByGoogle("golang")
+}()
+go func () {
+ch <- searchByBaidu("golang")
+}()
 
-    fmt.Println(<-ch)
+fmt.Println(<-ch)
 }
 ```
 
@@ -901,3 +901,200 @@ func main() {
 ## Error And Exception
 
 在Go语言中，错误被认为是一种可以预期的结果；而异常则是一种非预期的结果，发生异常可能表示程序中存在BUG或发生了其它不可控的问题。Go语言推荐使用 recover函数将内部异常转为错误处理，这使得用户可以真正的关心业务相关的错误处理。
+
+### Error Handling Strategy
+
+Go语言中的导出函数一般不抛出异常，一个未受控的异常可以看作是程序的BUG。但是对于那些提供类似Web服务的框架而言；它们经常需要接入第三方的中间件。因
+为第三方的中间件是否存在BUG是否会抛出异常，Web框架本身是不能确定的。为了提高系统的稳定性，Web框架一般会通过recover来防御性地捕获所有处理流程中 可能产生的异常，然后将异常转为普通的错误返回。
+
+- Go语言库的实现习惯: 即使在包内部使用了panic，但是在导出函数时会被转化为明确的错误值。
+
+### Get the error context
+
+有时候为了方便上层用户理解；底层实现者会将底层的错误重新包装为新的错误类型返回给用户：
+
+```go
+if _, err := html.Parse(resp.Body); err != nil {
+    return nil, fmt.Errorf("parsing %s as HTML: %v", url,err)
+}
+```
+
+上层用户在遇到错误时，可以很容易从业务层面理解错误发生的原因。但是鱼和熊掌总是很难兼得，在上层用户获得新的错误的同时，我们也丢失了底层最原始的错误 类型（只剩下错误描述信息了）。
+
+为了记录这种错误类型在包装的变迁过程中的信息，我们一般会定义一个辅助的WrapError函数，用于包装原始的错误，同时保留完整的原始错误类型。为了问题定位
+的方便，同时也为了能记录错误发生时的函数调用状态，我们很多时候希望在出现致命错误的时候保存完整的函数调用信息。同时，为了支持RPC等跨网络的传输，我们 可能要需要将错误序列化为类似JSON格式的数据，然后再从这些数据中将错误解码恢出来。
+
+- 在Go语言中，错误处理也有一套独特的编码风格。检查某个子函数是否失败后，我们通常将处理失败的逻辑代码放在处理成功的代码之前。如果某个错误会导致函数 返回，那么成功时的逻辑代码不应放在else语句块中，而应直接放在函数体中。
+
+```go
+f, err := os.Open("filename.ext")
+if err != nil {
+    // 失败的情形, 马上返回错误
+}
+
+// 正常的处理流程
+```
+
+### Wrong error return
+
+Go语言中的错误是一种接口类型。接口信息中包含了原始类型和原始的值。只有当接口的类型和原始的值都为空的时候，接口的值才对应nil。其实当接口中类型为空
+的时候，原始值必然也是空的；反之，当接口对应的原始值为空的时候，接口对应的原始类型并不一定为空的。
+
+在下面的例子中，试图返回自定义的错误类型，当没有错误的时候返回nil:
+
+```go
+func returnsError() error {
+    var p *MyError = nil
+    if bad() {
+        p = ErrBad
+    }
+    return p // Will always return a non-nil error.
+}
+```
+
+但是，最终返回的结果其实并非是nil：是一个正常的错误，错误的值是一个MyError类型的空指针。下面是改进的returnsError:
+
+```go
+func returnsError() error {
+    if bad() {
+        return (*MyError)(err)
+    }
+    return nil
+}
+```
+
+- 因此，在处理错误返回值的时候，没有错误的返回值最好直接写为nil。
+
+Go语言作为一个强类型语言，不同类型之间必须要显式的转换（而且必须有相同的基础类型）。但是，Go语言中interface是一个例外：非接口类型到接口类型，或 者是接口类型之间的转换都是隐式的。这是为了支持鸭子类型，当然会牺牲一定的安全性。
+
+### Analyze the exception
+
+panic支持抛出任意类型的异常（而不仅仅是error类型的错误），recover函数调用的返回值和panic函数的输入参数类型一致，它们的函数签名如下:
+
+```go
+func panic(interface{})
+func recover() interface{}
+```
+
+Go语言函数调用的正常流程是函数执行返回语句返回结果，在这个流程中是没有异常的，因此在这个流程中执行recover异常捕获函数始终是返回nil。另一种是异 常流程:
+当函数调用panic抛出异常，函数将停止执行后续的普通语句，但是之前注册的defer函数调用仍然保证会被正常执行，然后再返回到调用者。对于当前函数
+的调用者，因为处理异常状态还没有被捕获，和直接调用panic函数的行为类似。在异常发生时，如果在defer中执行recover调用，它可以捕获触发panic时的参 数，并且恢复到正常的执行流程。
+
+在非defer语句中执行recover调用是初学者常犯的错误:
+
+```go
+func main() {
+    if r := recover(); r != nil {
+        log.Fatal(r)
+    }
+
+    panic(123)
+
+    if r := recover(); r != nil {
+        log.Fatal(r)
+    }
+}
+```
+
+上面程序中两个recover调用都不能捕获任何异常。在第一个recover调用执行时，函数必然是在正常的非异常执行流程中，这时候recover调用将返回nil。发生
+异常时，第二个recover调用将没有机会被执行到，因为panic调用会导致函数马上执行已经注册defer的函数后返回。
+
+其实recover函数调用有着更严格的要求：我们必须在defer函数中直接调用recover。如果defer中调用的是recover函数的包装函数的话，异常的捕获工作将失
+败！比如，有时候我们可能希望包装自己的MyRecover函数，在内部增加必要的日志信息然后再调用recover，这是错误的做法:
+
+```go
+func main() {
+    defer func() {
+        // 无法捕获异常
+        if r := MyRecover(); r != nil {
+            fmt.Println(r)
+        }
+    }()
+    panic(1)
+}
+
+func MyRecover() interface{} {
+    log.Println("trace...")
+    return recover()
+}
+```
+
+同样，如果是在嵌套的defer函数中调用recover也将导致无法捕获异常:
+
+```go
+func main() {
+    defer func() {
+        defer func() {
+            // 无法捕获异常
+            if r := recover(); r != nil {
+                fmt.Println(r)
+            }
+        }()
+    }()
+    panic(1)
+}
+```
+
+2层嵌套的defer函数中直接调用recover和1层defer函数中调用包装的MyRecover函数一样，都是经过了2个函数帧才到达真正的recover函数，这个时候 Goroutine的对应上一级栈帧中已经没有异常信息。
+
+如果我们直接在defer语句中调用MyRecover函数又可以正常工作了:
+
+```go
+func MyRecover() interface{} {
+    return recover()
+}
+
+func main() {
+    // 可以正常捕获异常
+    defer MyRecover()
+    panic(1)
+}
+```
+
+但是，如果defer语句直接调用recover函数，依然不能正常捕获异常:
+
+```go
+func main() {
+    // 无法捕获异常
+    defer recover()
+    panic(1)
+}
+```
+
+必须要和有异常的栈帧只隔一个栈帧，recover函数才能正常捕获异常。换言之，recover函数捕获的是祖父一级调用函数栈帧的异常 （刚好可以跨越一层defer函数）！
+
+当然，为了避免recover调用者不能识别捕获到的异常, 应该避免用nil为参数抛出异常:
+
+```go
+func main() {
+    defer func() {
+        if r := recover(); r != nil { ... }
+        // 虽然总是返回nil, 但是可以恢复异常状态
+    }()
+
+    // 警告: 用`nil`为参数抛出异常
+    panic(nil)
+}
+```
+
+当希望将捕获到的异常转为错误时，如果希望忠实返回原始的信息，需要针对不同的类型分别处理:
+
+```go
+func foo() (err error) {
+    defer func() {
+        if r := recover(); r != nil {
+            switch x := r.(type) {
+            case string:
+                err = errors.New(x)
+            case error:
+                err = x
+            default:
+                err = fmt.Errorf("Unknown panic: %v", r)
+            }
+        }
+    }()
+
+    panic("TODO")
+}
+```
+
