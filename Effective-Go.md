@@ -360,17 +360,17 @@ correctness of the program state before real execution begins.
 
 ```go
 func init() {
-    if user == "" {
-        log.Fatal("$USER not set")
-    }
-    if home == "" {
-        home = "/home/" + user
-    }
-    if gopath == "" {
-        gopath = home + "/go"
-    }
-    // gopath may be overridden by --gopath flag on command line.
-    flag.StringVar(&gopath, "gopath", gopath, "override default GOPATH")
+if user == "" {
+log.Fatal("$USER not set")
+}
+if home == "" {
+home = "/home/" + user
+}
+if gopath == "" {
+gopath = home + "/go"
+}
+// gopath may be overridden by --gopath flag on command line.
+flag.StringVar(&gopath, "gopath", gopath, "override default GOPATH")
 }
 ```
 
@@ -378,121 +378,146 @@ func init() {
 
 ### Pointers vs. Values
 
-- The rule about pointers vs. values for receivers is that value methods can be invoked on pointers and values, but pointer methods can only be invoked on pointers.This rule arises because pointer methods can modify the receiver; invoking them on a value would cause the method to receive a copy of the value, so any modifications would be discarded.The language therefore disallows this mistake.
+- The rule about pointers vs. values for receivers is that value methods can be invoked on pointers and values, but
+  pointer methods can only be invoked on pointers.This rule arises because pointer methods can modify the receiver;
+  invoking them on a value would cause the method to receive a copy of the value, so any modifications would be
+  discarded.The language therefore disallows this mistake.
 
 ### Interfaces and other types
 
 #### Interfaces
 
-Interfaces in Go provide a way to specify the behavior of an object: if something can do this, then it can be used here.Interfaces with only one or two methods are common in Go code, and are usually given a name derived from the method, such as io.Writer for something that implements Write.
+Interfaces in Go provide a way to specify the behavior of an object: if something can do this, then it can be used
+here.Interfaces with only one or two methods are common in Go code, and are usually given a name derived from the
+method, such as io.Writer for something that implements Write.
 
 ```go
 type Sequence []int
 
 // Methods required by sort.Interface.
 func (s Sequence) Len() int {
-    return len(s)
+return len(s)
 }
 func (s Sequence) Less(i, j int) bool {
-    return s[i] < s[j]
+return s[i] < s[j]
 }
 func (s Sequence) Swap(i, j int) {
-    s[i], s[j] = s[j], s[i]
+s[i], s[j] = s[j], s[i]
 }
 
 // Copy returns a copy of the Sequence.
 func (s Sequence) Copy() Sequence {
-    copy := make(Sequence, 0, len(s))
-    return append(copy, s...)
+copy := make(Sequence, 0, len(s))
+return append(copy, s...)
 }
 
 // Method for printing - sorts the elements before printing.
 func (s Sequence) String() string {
-    s = s.Copy() // Make a copy; don't overwrite argument.
-    sort.Sort(s)
-    str := "["
-    for i, elem := range s { // Loop is O(N²); will fix that in next example.
-        if i > 0 {
-            str += " "
-        }
-        str += fmt.Sprint(elem)
-    }
-    return str + "]"
+s = s.Copy() // Make a copy; don't overwrite argument.
+sort.Sort(s)
+str := "["
+for i, elem := range s { // Loop is O(N²); will fix that in next example.
+if i > 0 {
+str += " "
+}
+str += fmt.Sprint(elem)
+}
+return str + "]"
 }
 ```
 
 #### Conversions
 
-The String method of Sequence(The above example) is recreating the work that Sprint already does for slices. (It also has complexity O(N²), which is poor.) We can share the effort (and also speed it up) if we convert the Sequence to a plain []int before calling Sprint.
+The String method of Sequence(The above example) is recreating the work that Sprint already does for slices. (It also
+has complexity O(N²), which is poor.) We can share the effort (and also speed it up) if we convert the Sequence to a
+plain []int before calling Sprint.
 
 ```go
 func (s Sequence) String() string {
-    s = s.Copy()
-    sort.Sort(s)
-    return fmt.Sprint([]int(s))
+s = s.Copy()
+sort.Sort(s)
+return fmt.Sprint([]int(s))
 }
 ```
 
-This method is another example of the conversion technique for calling Sprintf safely from a String method. Because the two types (Sequence and []int) are the same if we ignore the type name, it's legal to convert between them. The conversion doesn't create a new value, it just temporarily acts as though the existing value has a new type. (There are other legal conversions, such as from integer to floating point, that do create a new value.)
+This method is another example of the conversion technique for calling Sprintf safely from a String method. Because the
+two types (Sequence and []int) are the same if we ignore the type name, it's legal to convert between them. The
+conversion doesn't create a new value, it just temporarily acts as though the existing value has a new type. (There are
+other legal conversions, such as from integer to floating point, that do create a new value.)
 
 ```go
 type Sequence []int
 
 // Method for printing - sorts the elements before printing
 func (s Sequence) String() string {
-    s = s.Copy()
-    sort.IntSlice(s).Sort()
-    return fmt.Sprint([]int(s))
+s = s.Copy()
+sort.IntSlice(s).Sort()
+return fmt.Sprint([]int(s))
 }
 ```
 
-Now, instead of having Sequence implement multiple interfaces (sorting and printing), we're using the ability of a data item to be converted to multiple types (Sequence, sort.IntSlice and []int), each of which does some part of the job. That's more unusual in practice but can be effective.
+Now, instead of having Sequence implement multiple interfaces (sorting and printing), we're using the ability of a data
+item to be converted to multiple types (Sequence, sort.IntSlice and []int), each of which does some part of the job.
+That's more unusual in practice but can be effective.
 
 #### Interface conversions and type assertions
 
-Type switches are a form of conversion: they take an interface and, for each case in the switch, in a sense convert it to the type of that case. Here's a simplified version of how the code under fmt.Printf turns a value into a string using a type switch. If it's already a string, we want the actual string value held by the interface, while if it has a String method we want the result of calling the method.
+Type switches are a form of conversion: they take an interface and, for each case in the switch, in a sense convert it
+to the type of that case. Here's a simplified version of how the code under fmt.Printf turns a value into a string using
+a type switch. If it's already a string, we want the actual string value held by the interface, while if it has a String
+method we want the result of calling the method.
 
 ```go
 type Stringer interface {
-    String() string
+String() string
 }
 
 var value interface{} // Value provided by caller.
 switch str := value.(type) {
 case string:
-    return str
+return str
 case Stringer:
-    return str.String()
+return str.String()
 }
 ```
 
-The first case finds a concrete value; the second converts the interface into another interface. It's perfectly fine to mix types this way.
+The first case finds a concrete value; the second converts the interface into another interface. It's perfectly fine to
+mix types this way.
 
-What if there's only one type we care about? If we know the value holds a string and we just want to extract it? A one-case type switch would do, but so would a type assertion. A type assertion takes an interface value and extracts from it a value of the specified explicit type. The syntax borrows from the clause opening a type switch, but with an explicit type rather than the type keyword:
+What if there's only one type we care about? If we know the value holds a string and we just want to extract it? A
+one-case type switch would do, but so would a type assertion. A type assertion takes an interface value and extracts
+from it a value of the specified explicit type. The syntax borrows from the clause opening a type switch, but with an
+explicit type rather than the type keyword:
 
 ```go
 value.(typeName)
 ```
 
-and the result is a new value with the static type typeName. That type must either be the concrete type held by the interface, or a second interface type that the value can be converted to. To extract the string we know is in the value, we could write:
+and the result is a new value with the static type typeName. That type must either be the concrete type held by the
+interface, or a second interface type that the value can be converted to. To extract the string we know is in the value,
+we could write:
 
 ```go
 str := value.(string)
 ```
 
-As an illustration of the capability, here's an if-else statement that's equivalent to the type switch that opened this section.
+As an illustration of the capability, here's an if-else statement that's equivalent to the type switch that opened this
+section.
 
 ```go
 if str, ok := value.(string); ok {
-    return str
+return str
 } else if str, ok := value.(Stringer); ok {
-    return str.String()
+return str.String()
 }
 ```
 
 #### Generality
 
-If a type exists only to implement an interface and will never have exported methods beyond that interface, there is no need to export the type itself. Exporting just the interface makes it clear the value has no interesting behavior beyond what is described in the interface. It also avoids the need to repeat the documentation on every instance of a common method.
+If a type exists only to implement an interface and will never have exported methods beyond that interface, there is no
+need to export the type itself. Exporting just the interface makes it clear the value has no interesting behavior beyond
+what is described in the interface. It also avoids the need to repeat the documentation on every instance of a common
+method.
 
 ```go
 /* Ver1 与 Ver2 是 Version 的两种不同的具体实现。
@@ -507,74 +532,82 @@ package main
 import "fmt"
 
 type Version interface {
-    Is() string
+  Is() string
 }
 
 type Show interface {
-    VerNum()
+  VerNum()
 }
 
-type ShowVer struct{
-    V string
+type ShowVer struct {
+  V string
 }
+
 func (s ShowVer) VerNum() {
-    fmt.Println("Ver.", s.V)
+  fmt.Println("Ver.", s.V)
 }
 
 type Ver1 struct {
-    V string
+  V string
 }
+
 func (v Ver1) Is() string {
-    return fmt.Sprint(v.V)
+  return fmt.Sprint(v.V)
 }
 
 type Ver2 struct{}
+
 func (v Ver2) Is() string {
-    return "2"
+  return "2"
 }
 
 func main() {
-    ver1 := Ver1{"1"}
-    ver2 := Ver2{}
-    show1 := NewShow(ver1)
-    show2 := NewShow(ver2)
-    show1.VerNum()
-    show2.VerNum()
+  ver1 := Ver1{"1"}
+  ver2 := Ver2{}
+  show1 := NewShow(ver1)
+  show2 := NewShow(ver2)
+  show1.VerNum()
+  show2.VerNum()
 }
 
 func NewShow(ver Version) Show {
-    v := ver.Is()
-    return ShowVer{v}
+  v := ver.Is()
+  return ShowVer{v}
 }
 ```
 
 #### Interfaces and methods
 
-Since almost anything can have methods attached, almost anything can satisfy an interface. One illustrative example is in the http package, which defines the Handler interface. Any object that implements Handler can serve HTTP requests.
+Since almost anything can have methods attached, almost anything can satisfy an interface. One illustrative example is
+in the http package, which defines the Handler interface. Any object that implements Handler can serve HTTP requests.
 
 ```go
 type Handler interface {
-    ServeHTTP(ResponseWriter, *Request)
+ServeHTTP(ResponseWriter, *Request)
 }
 ```
 
-ResponseWriter is itself an interface that provides access to the methods needed to return the response to the client. Those methods include the standard Write method, so an http.ResponseWriter can be used wherever an io.Writer can be used. Request is a struct containing a parsed representation of the request from the client.
+ResponseWriter is itself an interface that provides access to the methods needed to return the response to the client.
+Those methods include the standard Write method, so an http.ResponseWriter can be used wherever an io.Writer can be
+used. Request is a struct containing a parsed representation of the request from the client.
 
-For brevity, let's ignore POSTs and assume HTTP requests are always GETs; that simplification does not affect the way the handlers are set up. Here's a trivial implementation of a handler to count the number of times the page is visited.
+For brevity, let's ignore POSTs and assume HTTP requests are always GETs; that simplification does not affect the way
+the handlers are set up. Here's a trivial implementation of a handler to count the number of times the page is visited.
 
 ```go
 // Simple counter server.
 type Counter struct {
-    n int
+n int
 }
 
 func (ctr *Counter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-    ctr.n++
-    fmt.Fprintf(w, "counter = %d\n", ctr.n)
+ctr.n++
+fmt.Fprintf(w, "counter = %d\n", ctr.n)
 }
 ```
 
-(Keeping with our theme, note how Fprintf can print to an http.ResponseWriter.) In a real server, access to ctr.n would need protection from concurrent access. See the sync and atomic packages for suggestions.
+(Keeping with our theme, note how Fprintf can print to an http.ResponseWriter.) In a real server, access to ctr.n would
+need protection from concurrent access. See the sync and atomic packages for suggestions.
 
 For reference, here's how to attach such a server to a node on the URL tree.
 
@@ -585,19 +618,21 @@ ctr := new(Counter)
 http.Handle("/counter", ctr)
 ```
 
-But why make Counter a struct? An integer is all that's needed. (The receiver needs to be a pointer so the increment is visible to the caller.)
+But why make Counter a struct? An integer is all that's needed. (The receiver needs to be a pointer so the increment is
+visible to the caller.)
 
 ```go
 // Simpler counter server.
 type Counter int
 
 func (ctr *Counter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-    *ctr++
-    fmt.Fprintf(w, "counter = %d\n", *ctr)
+*ctr++
+fmt.Fprintf(w, "counter = %d\n", *ctr)
 }
 ```
 
-What if your program has some internal state that needs to be notified that a page has been visited? Tie a channel to the web page.
+What if your program has some internal state that needs to be notified that a page has been visited? Tie a channel to
+the web page.
 
 ```go
 // A channel that sends a notification on each visit.
@@ -605,171 +640,222 @@ What if your program has some internal state that needs to be notified that a pa
 type Chan chan *http.Request
 
 func (ch Chan) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-    ch <- req
-    fmt.Fprint(w, "notification sent")
+ch <- req
+fmt.Fprint(w, "notification sent")
 }
 ```
 
-Finally, let's say we wanted to present on /args the arguments used when invoking the server binary. It's easy to write a function to print the arguments.
+Finally, let's say we wanted to present on /args the arguments used when invoking the server binary. It's easy to write
+a function to print the arguments.
 
 ```go
 func ArgServer() {
-    fmt.Println(os.Args)
+fmt.Println(os.Args)
 }
 ```
 
-How do we turn that into an HTTP server? We could make ArgServer a method of some type whose value we ignore, but there's a cleaner way. Since we can define a method for any type except pointers and interfaces, we can write a method for a function. The http package contains this code:
+How do we turn that into an HTTP server? We could make ArgServer a method of some type whose value we ignore, but
+there's a cleaner way. Since we can define a method for any type except pointers and interfaces, we can write a method
+for a function. The http package contains this code:
 
 ```go
 // The HandlerFunc type is an adapter to allow the use of
 // ordinary functions as HTTP handlers.  If f is a function
 // with the appropriate signature, HandlerFunc(f) is a
 // Handler object that calls f.
-type HandlerFunc func(ResponseWriter, *Request)
+type HandlerFunc func (ResponseWriter, *Request)
 
 // ServeHTTP calls f(w, req).
 func (f HandlerFunc) ServeHTTP(w ResponseWriter, req *Request) {
-    f(w, req)
+f(w, req)
 }
 ```
 
-HandlerFunc is a type with a method, ServeHTTP, so values of that type can serve HTTP requests. Look at the implementation of the method: the receiver is a function, f, and the method calls f. That may seem odd but it's not that different from, say, the receiver being a channel and the method sending on the channel.
+HandlerFunc is a type with a method, ServeHTTP, so values of that type can serve HTTP requests. Look at the
+implementation of the method: the receiver is a function, f, and the method calls f. That may seem odd but it's not that
+different from, say, the receiver being a channel and the method sending on the channel.
 
 To make ArgServer into an HTTP server, we first modify it to have the right signature.
 
 ```go
 // Argument server.
 func ArgServer(w http.ResponseWriter, req *http.Request) {
-    fmt.Fprintln(w, os.Args)
+fmt.Fprintln(w, os.Args)
 }
 ```
 
-ArgServer now has same signature as HandlerFunc, so it can be converted to that type to access its methods, just as we converted Sequence to IntSlice to access IntSlice.Sort. The code to set it up is concise:
+ArgServer now has same signature as HandlerFunc, so it can be converted to that type to access its methods, just as we
+converted Sequence to IntSlice to access IntSlice.Sort. The code to set it up is concise:
 
 ```go
 http.Handle("/args", http.HandlerFunc(ArgServer))
 ```
 
-When someone visits the page /args, the handler installed at that page has value ArgServer and type HandlerFunc. The HTTP server will invoke the method ServeHTTP of that type, with ArgServer as the receiver, which will in turn call ArgServer (via the invocation f(w, req) inside HandlerFunc.ServeHTTP). The arguments will then be displayed.
+When someone visits the page /args, the handler installed at that page has value ArgServer and type HandlerFunc. The
+HTTP server will invoke the method ServeHTTP of that type, with ArgServer as the receiver, which will in turn call
+ArgServer (via the invocation f(w, req) inside HandlerFunc.ServeHTTP). The arguments will then be displayed.
 
-In this section we have made an HTTP server from a struct, an integer, a channel, and a function, all because interfaces are just sets of methods, which can be defined for (almost) any type.
+In this section we have made an HTTP server from a struct, an integer, a channel, and a function, all because interfaces
+are just sets of methods, which can be defined for (almost) any type.
 
 ## The blank identifier in multiple assignment
 
-If an assignment requires multiple values on the left side, but one of the values will not be used by the program, a blank identifier on the left-hand-side of the assignment avoids the need to create a dummy variable and makes it clear that the value is to be discarded.
+If an assignment requires multiple values on the left side, but one of the values will not be used by the program, a
+blank identifier on the left-hand-side of the assignment avoids the need to create a dummy variable and makes it clear
+that the value is to be discarded.
 
 ## Import for side effect
 
-An unused import like fmt or io in the previous example should eventually be used or removed: blank assignments identify code as a work in progress. But sometimes it is useful to import a package only for its side effects, without any explicit use.For example, during its init function, the net/http/pprof package registers HTTP handlers that provide debugging information. It has an exported API, but most clients need only the handler registration and access the data through a web page. To import the package only for its side effects, rename the package to the blank identifier:
+An unused import like fmt or io in the previous example should eventually be used or removed: blank assignments identify
+code as a work in progress. But sometimes it is useful to import a package only for its side effects, without any
+explicit use.For example, during its init function, the net/http/pprof package registers HTTP handlers that provide
+debugging information. It has an exported API, but most clients need only the handler registration and access the data
+through a web page. To import the package only for its side effects, rename the package to the blank identifier:
 
 ```go
 import _ "net/http/pprof"
 ```
 
-This form of import makes clear that the package is being imported for its side effects, because there is no other possible use of the package: in this file, it doesn't have a name. (If it did, and we didn't use that name, the compiler would reject the program.)
+This form of import makes clear that the package is being imported for its side effects, because there is no other
+possible use of the package: in this file, it doesn't have a name. (If it did, and we didn't use that name, the compiler
+would reject the program.)
 
 ## Interface checks
 
-As we saw in the discussion of interfaces above, a type need not declare explicitly that it implements an interface. Instead, a type implements the interface just by implementing the interface's methods. In practice, most interface conversions are static and therefore checked at compile time. For example, passing an *os.File to a function expecting an io.Reader will not compile unless *os.File implements the io.Reader interface.
+As we saw in the discussion of interfaces above, a type need not declare explicitly that it implements an interface.
+Instead, a type implements the interface just by implementing the interface's methods. In practice, most interface
+conversions are static and therefore checked at compile time. For example, passing an *os.File to a function expecting
+an io.Reader will not compile unless *os.File implements the io.Reader interface.
 
-Some interface checks do happen at run-time, though. One instance is in the encoding/json package, which defines a Marshaler interface. When the JSON encoder receives a value that implements that interface, the encoder invokes the value's marshaling method to convert it to JSON instead of doing the standard conversion. The encoder checks this property at run time with a type assertion like:
+Some interface checks do happen at run-time, though. One instance is in the encoding/json package, which defines a
+Marshaler interface. When the JSON encoder receives a value that implements that interface, the encoder invokes the
+value's marshaling method to convert it to JSON instead of doing the standard conversion. The encoder checks this
+property at run time with a type assertion like:
 
 ```go
 m, ok := val.(json.Marshaler)
 ```
 
-If it's necessary only to ask whether a type implements an interface, without actually using the interface itself, perhaps as part of an error check, use the blank identifier to ignore the type-asserted value:
+If it's necessary only to ask whether a type implements an interface, without actually using the interface itself,
+perhaps as part of an error check, use the blank identifier to ignore the type-asserted value:
 
 ```go
 if _, ok := val.(json.Marshaler); ok {
-    fmt.Printf("value %v of type %T implements json.Marshaler\n", val, val)
+fmt.Printf("value %v of type %T implements json.Marshaler\n", val, val)
 }
 ```
 
-One place this situation arises is when it is necessary to guarantee within the package implementing the type that it actually satisfies the interface. If a type—for example, json.RawMessage—needs a custom JSON representation, it should implement json.Marshaler, but there are no static conversions that would cause the compiler to verify this automatically. If the type inadvertently fails to satisfy the interface, the JSON encoder will still work, but will not use the custom implementation. To guarantee that the implementation is correct, a global declaration using the blank identifier can be used in the package:
+One place this situation arises is when it is necessary to guarantee within the package implementing the type that it
+actually satisfies the interface. If a type—for example, json.RawMessage—needs a custom JSON representation, it should
+implement json.Marshaler, but there are no static conversions that would cause the compiler to verify this
+automatically. If the type inadvertently fails to satisfy the interface, the JSON encoder will still work, but will not
+use the custom implementation. To guarantee that the implementation is correct, a global declaration using the blank
+identifier can be used in the package:
 
 ```go
 var _ json.Marshaler = (*RawMessage)(nil)
 ```
 
-In this declaration, the assignment involving a conversion of a *RawMessage to a Marshaler requires that *RawMessage implements Marshaler, and that property will be checked at compile time. Should the json.Marshaler interface change, this package will no longer compile and we will be on notice that it needs to be updated.
+In this declaration, the assignment involving a conversion of a *RawMessage to a Marshaler requires that *RawMessage
+implements Marshaler, and that property will be checked at compile time. Should the json.Marshaler interface change,
+this package will no longer compile and we will be on notice that it needs to be updated.
 
-The appearance of the blank identifier in this construct indicates that the declaration exists only for the type checking, not to create a variable. Don't do this for every type that satisfies an interface, though. By convention, such declarations are only used when there are no static conversions already present in the code, which is a rare event.
+The appearance of the blank identifier in this construct indicates that the declaration exists only for the type
+checking, not to create a variable. Don't do this for every type that satisfies an interface, though. By convention,
+such declarations are only used when there are no static conversions already present in the code, which is a rare event.
 
 ## Embedding
 
-Go does not provide the typical, type-driven notion of subclassing, but it does have the ability to “borrow” pieces of an implementation by embedding types within a struct or interface.
+Go does not provide the typical, type-driven notion of subclassing, but it does have the ability to “borrow” pieces of
+an implementation by embedding types within a struct or interface.
 
-Interface embedding is very simple. We've mentioned the io.Reader and io.Writer interfaces before; here are their definitions.
+Interface embedding is very simple. We've mentioned the io.Reader and io.Writer interfaces before; here are their
+definitions.
 
 ```go
 type Reader interface {
-    Read(p []byte) (n int, err error)
+Read(p []byte) (n int, err error)
 }
 
 type Writer interface {
-    Write(p []byte) (n int, err error)
+Write(p []byte) (n int, err error)
 }
 ```
 
-The io package also exports several other interfaces that specify objects that can implement several such methods. For instance, there is io.ReadWriter, an interface containing both Read and Write. We could specify io.ReadWriter by listing the two methods explicitly, but it's easier and more evocative to embed the two interfaces to form the new one, like this:
+The io package also exports several other interfaces that specify objects that can implement several such methods. For
+instance, there is io.ReadWriter, an interface containing both Read and Write. We could specify io.ReadWriter by listing
+the two methods explicitly, but it's easier and more evocative to embed the two interfaces to form the new one, like
+this:
 
 ```go
 // ReadWriter is the interface that combines the Reader and Writer interfaces.
 type ReadWriter interface {
-    Reader
-    Writer
+Reader
+Writer
 }
 ```
 
-Only interfaces can be embedded within interfaces.The same basic idea applies to structs, but with more far-reaching implications. The bufio package has two struct types, bufio.Reader and bufio.Writer, each of which of course implements the analogous interfaces from package io. And bufio also implements a buffered reader/writer, which it does by combining a reader and a writer into one struct using embedding: it lists the types within the struct but does not give them field names.
+Only interfaces can be embedded within interfaces.The same basic idea applies to structs, but with more far-reaching
+implications. The bufio package has two struct types, bufio.Reader and bufio.Writer, each of which of course implements
+the analogous interfaces from package io. And bufio also implements a buffered reader/writer, which it does by combining
+a reader and a writer into one struct using embedding: it lists the types within the struct but does not give them field
+names.
 
 ```go
 // ReadWriter stores pointers to a Reader and a Writer.
 // It implements io.ReadWriter.
 type ReadWriter struct {
-    *Reader  // *bufio.Reader
-    *Writer  // *bufio.Writer
+*Reader // *bufio.Reader
+*Writer // *bufio.Writer
 }
 ```
 
-The embedded elements are pointers to structs and of course must be initialized to point to valid structs before they can be used. The ReadWriter struct could be written as
+The embedded elements are pointers to structs and of course must be initialized to point to valid structs before they
+can be used. The ReadWriter struct could be written as
 
 ```go
 type ReadWriter struct {
-    reader *Reader
-    writer *Writer
+reader *Reader
+writer *Writer
 }
 ```
 
-but then to promote the methods of the fields and to satisfy the io interfaces, we would also need to provide forwarding methods, like this:
+but then to promote the methods of the fields and to satisfy the io interfaces, we would also need to provide forwarding
+methods, like this:
 
 ```go
 func (rw *ReadWriter) Read(p []byte) (n int, err error) {
-    return rw.reader.Read(p)
+return rw.reader.Read(p)
 }
 ```
 
-By embedding the structs directly, we avoid this bookkeeping. The methods of embedded types come along for free, which means that bufio.ReadWriter not only has the methods of bufio.Reader and bufio.Writer, it also satisfies all three interfaces: io.Reader, io.Writer, and io.ReadWriter.
+By embedding the structs directly, we avoid this bookkeeping. The methods of embedded types come along for free, which
+means that bufio.ReadWriter not only has the methods of bufio.Reader and bufio.Writer, it also satisfies all three
+interfaces: io.Reader, io.Writer, and io.ReadWriter.
 
-There's an important way in which embedding differs from subclassing. When we embed a type, the methods of that type become methods of the outer type, but when they are invoked the receiver of the method is the inner type, not the outer one. In our example, when the Read method of a bufio.ReadWriter is invoked, it has exactly the same effect as the forwarding method written out above; the receiver is the reader field of the ReadWriter, not the ReadWriter itself.
+There's an important way in which embedding differs from subclassing. When we embed a type, the methods of that type
+become methods of the outer type, but when they are invoked the receiver of the method is the inner type, not the outer
+one. In our example, when the Read method of a bufio.ReadWriter is invoked, it has exactly the same effect as the
+forwarding method written out above; the receiver is the reader field of the ReadWriter, not the ReadWriter itself.
 
 Embedding can also be a simple convenience. This example shows an embedded field alongside a regular, named field.
 
 ```go
 type Job struct {
-    Command string
-    *log.Logger
+Command string
+*log.Logger
 }
 ```
 
-The Job type now has the Print, Printf, Println and other methods of \*log.Logger. We could have given the Logger a field name, of course, but it's not necessary to do so. And now, once initialized, we can log to the Job:
+The Job type now has the Print, Printf, Println and other methods of \*log.Logger. We could have given the Logger a
+field name, of course, but it's not necessary to do so. And now, once initialized, we can log to the Job:
 
 ```go
 job.Println("starting now...")
 ```
 
-The Logger is a regular field of the Job struct, so we can initialize it in the usual way inside the constructor for Job, like this,
+The Logger is a regular field of the Job struct, so we can initialize it in the usual way inside the constructor for
+Job, like this,
 
 ```go
 func NewJob(command string, logger *log.Logger) *Job {
@@ -783,7 +869,9 @@ or with a composite literal,
 job := &Job{command, log.New(os.Stderr, "Job: ", log.Ldate)}
 ```
 
-If we need to refer to an embedded field directly, the type name of the field, ignoring the package qualifier, serves as a field name, as it did in the Read method of our ReadWriter struct. Here, if we needed to access the \*log.Logger of a Job variable job, we would write job.Logger, which would be useful if we wanted to refine the methods of Logger.
+If we need to refer to an embedded field directly, the type name of the field, ignoring the package qualifier, serves as
+a field name, as it did in the Read method of our ReadWriter struct. Here, if we needed to access the \*log.Logger of a
+Job variable job, we would write job.Logger, which would be useful if we wanted to refine the methods of Logger.
 
 ```go
 func (job \*Job) Printf(format string, args ...interface{}) {
@@ -791,6 +879,143 @@ job.Logger.Printf("%q: %s", job.Command, fmt.Sprintf(format, args...))
 }
 ```
 
-Embedding types introduces the problem of name conflicts but the rules to resolve them are simple. First, a field or method X hides any other item X in a more deeply nested part of the type. If log.Logger contained a field or method called Command, the Command field of Job would dominate it.
+Embedding types introduces the problem of name conflicts but the rules to resolve them are simple. First, a field or
+method X hides any other item X in a more deeply nested part of the type. If log.Logger contained a field or method
+called Command, the Command field of Job would dominate it.
 
-Second, if the same name appears at the same nesting level, it is usually an error; it would be erroneous to embed log.Logger if the Job struct contained another field or method called Logger. However, if the duplicate name is never mentioned in the program outside the type definition, it is OK. This qualification provides some protection against changes made to types embedded from outside; there is no problem if a field is added that conflicts with another field in another subtype if neither field is ever used.
+Second, if the same name appears at the same nesting level, it is usually an error; it would be erroneous to embed
+log.Logger if the Job struct contained another field or method called Logger. However, if the duplicate name is never
+mentioned in the program outside the type definition, it is OK. This qualification provides some protection against
+changes made to types embedded from outside; there is no problem if a field is added that conflicts with another field
+in another subtype if neither field is ever used.
+
+## Errors
+
+errors have type error, a simple built-in interface.
+
+```go
+type error interface {
+Error() string
+}
+```
+
+- panic 只会触发当前 Goroutine 的 defer；
+- recover 只有在 defer 中调用才会生效；
+- panic 允许在 defer 中嵌套多次调用；
+
+### Panic
+
+The usual way to report an error to a caller is to return an error as an extra return value. The canonical Read method
+is a well-known instance; it returns a byte count and an error. But what if the error is unrecoverable? Sometimes the
+program simply cannot continue.
+
+For this purpose, there is a built-in function panic that in effect creates a run-time error that will stop the
+program.This is only an example but real library functions should avoid panic. If the problem can be masked or worked
+around, it's always better to let things continue to run rather than taking down the whole program. One possible
+counterexample is during initialization: if the library truly cannot set itself up, it might be reasonable to panic, so
+to speak.
+
+```go
+var user = os.Getenv("USER")
+
+func init() {
+if user == "" {
+panic("no value for $USER")
+}
+}
+```
+
+### Recover
+
+When panic is called, including implicitly for run-time errors such as indexing a slice out of bounds or failing a type
+assertion, it immediately stops execution of the current function and begins unwinding the stack of the goroutine,
+running any deferred functions along the way. If that unwinding reaches the top of the goroutine's stack, the program
+dies. However, it is possible to use the built-in function recover to regain control of the goroutine and resume normal
+execution.
+
+A call to recover stops the unwinding and returns the argument passed to panic. Because the only code that runs while
+unwinding is inside deferred functions, recover is only useful inside deferred functions.
+
+One application of recover is to shut down a failing goroutine inside a server without killing the other executing
+goroutines.
+
+```go
+func server(workChan <-chan *Work) {
+for work := range workChan {
+go safelyDo(work)
+}
+}
+
+func safelyDo(work *Work) {
+defer func () {
+if err := recover(); err != nil {
+log.Println("work failed:", err)
+}
+}()
+do(work)
+}
+```
+
+In this example, if do(work) panics, the result will be logged and the goroutine will exit cleanly without disturbing
+the others. There's no need to do anything else in the deferred closure; calling recover handles the condition
+completely.
+
+Because recover always returns nil unless called directly from a deferred function, deferred code can call library
+routines that themselves use panic and recover without failing.As an example, the deferred function in safelyDo might
+call a logging function before calling recover, and that logging code would run unaffected by the panicking state.
+
+With our recovery pattern in place, the do function (and anything it calls) can get out of any bad situation cleanly by
+calling panic. We can use that idea to simplify error handling in complex software. Let's look at an idealized version
+of a regexp package, which reports parsing errors by calling panic with a local error type. Here's the definition of
+Error, an error method, and the Compile function.
+
+```go
+// Error is the type of a parse error; it satisfies the error interface.
+type Error string
+func (e Error) Error() string {
+return string(e)
+}
+
+// error is a method of *Regexp that reports parsing errors by
+// panicking with an Error.
+func (regexp *Regexp) error(err string) {
+panic(Error(err))
+}
+
+// Compile returns a parsed representation of the regular expression.
+func Compile(str string) (regexp *Regexp, err error) {
+regexp = new(Regexp)
+// doParse will panic if there is a parse error.
+defer func () {
+if e := recover(); e != nil {
+regexp = nil // Clear return value.
+err = e.(Error) // Will re-panic if not a parse error.
+}
+}()
+return regexp.doParse(str), nil
+}
+```
+
+If doParse panics, the recovery block will set the return value to nil—deferred functions can modify named return
+values. It will then check, in the assignment to err, that the problem was a parse error by asserting that it has the
+local type Error. If it does not, the type assertion will fail, causing a run-time error that continues the stack
+unwinding as though nothing had interrupted it. This check means that if something unexpected happens, such as an index
+out of bounds, the code will fail even though we are using panic and recover to handle parse errors.
+
+With error handling in place, the error method (because it's a method bound to a type, it's fine, even natural, for it
+to have the same name as the builtin error type) makes it easy to report parse errors without worrying about unwinding
+the parse stack by hand:
+
+```go
+if pos == 0 {
+re.error("'*' illegal at start of expression")
+}
+```
+
+Useful though this pattern is, it should be used only within a package. Parse turns its internal panic calls into error
+values; it does not expose panics to its client. That is a good rule to follow. By the way, this re-panic idiom changes
+the panic value if an actual error occurs. However, both the original and new failures will be presented in the crash
+report, so the root cause of the problem will still be visible. Thus this simple re-panic approach is usually
+sufficient—it's a crash after all—but if you want to display only the original value, you can write a little more code
+to filter unexpected problems and re-panic with the original error. 
+
