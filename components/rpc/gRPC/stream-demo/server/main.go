@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
-	"io"
 	"log"
 	"net"
 
 	"google.golang.org/grpc"
+	. "stream-demo/hello-interface"
 )
 
 func main() {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	. "stream-demo/hello-interface"
 )
 
 func main() {

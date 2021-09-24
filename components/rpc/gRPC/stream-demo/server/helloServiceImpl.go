@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"io"
+	. "stream-demo/hello-interface"
 )
 
 type HelloServiceImpl struct{}

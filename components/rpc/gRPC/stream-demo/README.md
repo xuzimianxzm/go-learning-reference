@@ -1,6 +1,6 @@
 ## Introduction
 
-- HelloService: Protobuf 接口定义，根据hello.proto文件使用Protobuf工具集生成的go的gRPC代码文件hello.pd.go，该文件分别copy到client和service下
+- HelloService: Protobuf 接口定义，根据hello.proto文件使用Protobuf工具集生成的go的gRPC代码文件hello.pd.go
 - client: gRPC提供的stream模式客户端,客户端的Channel方法返回一个HelloService_ChannelClient类型的返回值，可以用于和服务端进行双向通信。
   在客户端我们将发送和接收操作放到两个独立的Goroutine。首先是向服务端发送数据,然后在循环中接收服务端返回的数据。
 - server: gRPC提供的stream模式服务端,在服务端的Channel方法参数是一个新的HelloService_ChannelServer类型的参数，可以用于和客户端双向通信。
