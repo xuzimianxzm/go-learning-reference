@@ -150,4 +150,20 @@ openssl x509 -req -sha256 \
 
 ### token
 
+前面的基于证书的认证是针对每个gRPC链接的认证。gRPC还为每个gRPC方法调用提供了认证支持，这样就基于用户Token对不同的方法访问进行权限管理。
+要实现对每个gRPC方法进行认证，需要实现grpc.PerRPCCredentials接口：
+
+```go
+type PerRPCCredentials interface {
+GetRequestMetadata(ctx context.Context, uri ...string) (
+map[string]string, error,
+)
+RequireTransportSecurity() bool
+}
+```
+
+在GetRequestMetadata方法中返回认证需要的必要信息。RequireTransportSecurity方法表示是否要求底层使用安全链接。在真实的环境中建议必须要求底层启用安全的链接，否则认证信息有泄露和被篡改的风险。
+
+> N0otes: 本示例未启用安全链接。
+
 ### panic-and-log
