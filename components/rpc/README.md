@@ -1,13 +1,15 @@
 ## Introduction
 
-RPC 是远程过程调用的简称，是分布式系统中不同节点间流行的通信方式。Go 语言的标准库也提供了一个简单的 RPC 实现，Go 语言的 RPC 包的路径为 net/rpc，也就是放在了 net 包目录下面。
+RPC 是远程过程调用的简称，是分布式系统中不同节点间流行的通信方式。
+
+Go 语言的标准库也提供了一个简单的 RPC 实现，Go 语言的 RPC 包的路径为 net/rpc，也就是放在了 net
+包目录下面。它支持tpc，http，JSONRPC数据传输。但是它只能用于go内部使用，为什么？因为它使用了一个go自带的库（encoding/gob）来编码和解码。
 
 ### gRPC 是什么
 
 ![avatar](https://gitee.com/xuzimian/Image/raw/master/RPC/gRPC.png)
 
-gRPC 是可以跨语言开发的
-在 gRPC 客户端可以直接调用不同服务器上的远程程序，使用姿势看起来就像调用本地过程调用一样，很容易去构建分布式应用和服务。客户端和服务端可以分别使用 gRPC 支持的不同语言实现
+gRPC 是可以跨语言开发的 在 gRPC 客户端可以直接调用不同服务器上的远程程序，使用姿势看起来就像调用本地过程调用一样，很容易去构建分布式应用和服务。客户端和服务端可以分别使用 gRPC 支持的不同语言实现
 
 基于 HTTP2 标准设计，比其他框架更优的地方有:
 
@@ -19,7 +21,8 @@ gRPC 是可以跨语言开发的
 
 ### protobuf
 
-Protobuf 是 Protocol Buffers 的简称，它是 Google 公司开发的一种数据描述语言，并于 2008 年对外开源。Protobuf 刚开源时的定位类似于 XML、JSON 等数据描述语言，通过附带工具生成代码并实现将结构化数据序列化的功能。但是我们更关注的是 Protobuf 作为接口规范的描述语言，可以作为设计安全的跨语言 PRC 接口的基础工具。
+Protobuf 是 Protocol Buffers 的简称，它是 Google 公司开发的一种数据描述语言，并于 2008 年对外开源。Protobuf 刚开源时的定位类似于 XML、JSON
+等数据描述语言，通过附带工具生成代码并实现将结构化数据序列化的功能。但是我们更关注的是 Protobuf 作为接口规范的描述语言，可以作为设计安全的跨语言 PRC 接口的基础工具。
 
 简单介绍 protobuf 的结构定义包含的 3 个关键字
 
@@ -31,7 +34,7 @@ Message 命名采用驼峰命名方式，字段是小写加下划线
 
 ```protobuf
 message ServerRequest {
-      required string my_name = 1;
+  required string my_name = 1;
 }
 ```
 
@@ -39,8 +42,8 @@ Enums 类型名采用驼峰命名方式，字段命名采用大写字母加下�
 
 ```protobuf
 enum MyNum {
-VALUE1 = 1;
-VALUE2 = 2;
+  VALUE1 = 1;
+  VALUE2 = 2;
 }
 ```
 
@@ -48,8 +51,8 @@ Service 与 rpc 方法名统一采用驼峰式命名
 
 ```protobuf
 service Love {
-// 定义 Confession 方法
-rpc MyConfession(Request) returns (Response) {}
+  // 定义 Confession 方法
+  rpc MyConfession(Request) returns (Response) {}
 }
 ```
 
@@ -77,8 +80,8 @@ message Response {
 }
 ```
 
-Protobuf 核心的工具集是 C++语言开发的，可以使用 proto 工具将对应的.proto 文件编译成 python 等任何其支持的语言，在官方的 protoc 编译器中并不支持 Go，需要安装相应的插件。
-安装好 protoc 环境之后，进入到 proto 文件的目录下，执行如下命令，将 proto 文件编译成 pb.go 文件
+Protobuf 核心的工具集是 C++语言开发的，可以使用 proto 工具将对应的.proto 文件编译成 python 等任何其支持的语言，在官方的 protoc 编译器中并不支持 Go，需要安装相应的插件。 安装好 protoc
+环境之后，进入到 proto 文件的目录下，执行如下命令，将 proto 文件编译成 pb.go 文件
 
 ```sh
  protoc --go_out=plugins=grpc:. test.proto
