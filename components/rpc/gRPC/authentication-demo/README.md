@@ -34,13 +34,26 @@ openssl req -new -x509 -days 3650 \
 以上命令将生成server.key、server.crt、client.key和client.crt四个文件。其中以.key为后缀名的是私钥文件，需要妥善保管。以.crt为后缀名是证书
 文件，也可以简单理解为公钥文件，并不需要秘密保存。在subj参数中的/CN=server.grpc.io表示服务器的名字为server.grpc.io，在验证服务器的证书时需要用到该信息。
 
-### 1-On-web
+### 1-on-web
 
 一个简单使用TSL协议的web demo:
 
-1. 启动一个web服务，其使用server.crt证书和server.key私钥用于TSL加密保护信息安全。 参见main.go的startServer()函数。
+1. 启动一个web服务，其使用server.crt证书和server.key私钥用于TSL加密保护信息安全。
 
-2. 启动一个client客户端链接其使用server.crt证书和"server.grpc.io"构建TSL客户端。参见main.go的doClientWork()函数。
+```go
+func main() {
+creds, err := credentials.NewServerTLSFromFile("server.crt", "server.key")
+if err != nil {
+log.Fatal(err)
+}
+
+server := grpc.NewServer(grpc.Creds(creds))
+
+...
+}
+```
+
+2. 启动一个client客户端链接其使用server.crt证书和"server.grpc.io"构建TSL客户端。
 
 ````go
 func main() {
@@ -67,7 +80,70 @@ defer conn.Close()
 其中redentials.NewClientTLSFromFile是构造客户端用的证书对象，第一个参数是服务器的证书文件，第二个参数是签发证书的服务器的名字。然后通过grpc.WithTransportCredentials(
 creds)将证书对象转为参数选项传人grpc.Dial函数。
 
-### TLS-CA
+gRPC构建在HTTP/2协议之上，因此我们可以将gRPC服务和普通的Web服务架设在同一个端口之上。参见main.go的startServer()函数。 启用普通的https服务器则非常简单：
+
+```go
+func main() {
+mux := http.NewServeMux()
+mux.HandleFunc("/", func (w http.ResponseWriter, req *http.Request) {
+fmt.Fprintln(w, "hello")
+})
+
+http.ListenAndServeTLS(port, "server.crt", "server.key",
+http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+mux.ServeHTTP(w, r)
+return
+}),
+)
+}
+```
+
+而单独启用带证书的gRPC服务也是同样的简单：
+
+```go
+func main() {
+creds, err := credentials.NewServerTLSFromFile("server.crt", "server.key")
+if err != nil {
+log.Fatal(err)
+}
+
+grpcServer := grpc.NewServer(grpc.Creds(creds))
+
+...
+}
+```
+
+因为gRPC服务已经实现了ServeHTTP方法，可以直接作为Web路由处理对象。如果将gRPC和Web服务放在一起，会导致gRPC和Web路径的冲突，在处理时我们需要区分两类服务。
+
+我们可以通过以下方式生成同时支持Web和gRPC协议的路由处理函数：
+
+```go
+func main() {
+...
+
+http.ListenAndServeTLS(port, "server.crt", "server.key",
+http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+if r.ProtoMajor != 2 {
+mux.ServeHTTP(w, r)
+return
+}
+if strings.Contains(
+r.Header.Get("Content-Type"), "application/grpc",
+) {
+grpcServer.ServeHTTP(w, r) // gRPC Server
+return
+}
+
+mux.ServeHTTP(w, r)
+return
+}),
+)
+}
+```
+
+> Notes: 首先gRPC是建立在HTTP/2版本之上，如果HTTP不是HTTP/2协议则必然无法提供gRPC支持。同时，每个gRPC调用请求的Content-Type类型会被标注为"application/grpc"类型。
+
+### 2-TLS-CA
 
 以上(On-web中)这种方式，需要提前将服务器的证书告知客户端，这样客户端在链接服务器时才能进行对服务器证书认证。在复杂的网络环境中，服务器证书的传输本身也是一个
 非常危险的问题。如果在中间某个环节，服务器证书被监听或替换那么对服务器的认证也将不再可靠。 为了避免证书的传递过程中被篡改，可以通过一个安全可靠的根证书分别对服务器和客户端的证书进行签名。这样客户端或服务器在收到对方的证书后可以通过根证书
@@ -148,7 +224,7 @@ openssl x509 -req -sha256 \
 
 - 因为引入了CA根证书签名，在启动服务器时同样要配置根证书，代码详情可参考main.go的startServer()函数。
 
-### token
+### 3-token
 
 前面的基于证书的认证是针对每个gRPC链接的认证。gRPC还为每个gRPC方法调用提供了认证支持，这样就基于用户Token对不同的方法访问进行权限管理。
 要实现对每个gRPC方法进行认证，需要实现grpc.PerRPCCredentials接口：
@@ -166,4 +242,25 @@ RequireTransportSecurity() bool
 
 > N0otes: 本示例未启用安全链接。
 
-### panic-and-log
+### 4-panic-and-log And gRPC Interceptor
+
+gRPC中的grpc.UnaryInterceptor和grpc.StreamInterceptor分别对普通方法和流方法提供了截取器的支持。 要实现普通方法的截取器，需要为grpc.UnaryInterceptor的参数实现一个函数：
+
+```go
+func filter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
+handler grpc.UnaryHandler,
+) (resp interface{}, err error) {
+log.Println("fileter:", info)
+return handler(ctx, req)
+}
+```
+
+函数的ctx和req参数就是每个普通的RPC方法的前两个参数。第三个info参数表示当前是对应的那个gRPC方法，第四个handler参数对应当前的gRPC方法函数。上面的函数中首先是日志输出info参数，然后调用handler对应的gRPC方法函数。
+
+要使用filter截取器函数，只需要在启动gRPC服务时作为参数输入即可：
+
+```go
+server := grpc.NewServer(grpc.UnaryInterceptor(filter))
+```
+
+> Notes: 不过gRPC框架中只能为每个服务设置一个截取器，因此所有的截取工作只能在一个函数中完成。开源的grpc-ecosystem项目中的go-grpc-middleware包已经基于gRPC对截取器实现了链式截取器的支持。 
