@@ -29,3 +29,8 @@ SOCKS5 是一个代理协议，旨在为位于 Intranet 防火墙后的用户提
 - https://jiajunhuang.com/articles/2019_06_06-socks5.md.html
 - http://www.moye.me/2017/08/03/analyze-socks5-protocol/
 - https://segmentfault.com/a/1190000038247560
+
+## Project Instruction
+
+- go-socks5: 运行一个socks5 server，并直接利用其拨号器(Dial)配置httpclient,对socks5 server发起代理http请求
+- socks5-dialer: 对一个已经运行的socks5 server发起一个代理http请求,需要先行运行socks5 server，如go-socks5/main.go 中的startSocks5Server（）
