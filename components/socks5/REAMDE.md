@@ -34,3 +34,10 @@ SOCKS5 是一个代理协议，旨在为位于 Intranet 防火墙后的用户提
 
 - go-socks5: 运行一个socks5 server，并直接利用其拨号器(Dial)配置httpclient,对socks5 server发起代理http请求
 - socks5-dialer: 对一个已经运行的socks5 server发起一个代理http请求,需要先行运行socks5 server，如go-socks5/main.go 中的startSocks5Server（）
+
+## WLAN Proxy
+
+Reference Links:
+
+- Android4.4 wifi代理流程               :https://bbs.pediy.com/thread-252161.htm
+- Android wifi源码分析（一） Wifi启动流程  :https://www.codeleading.com/article/40444129691/
