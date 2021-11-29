@@ -636,6 +636,8 @@ fmt.Println("Tick at", t)
 而主流编程语言对基于消息的并发编程模型支持则相比较少，Erlang语言是支持基于消息传递并发编程模型的代表者，它的并发体之间不共享内存。 Go语言是基于 消息并发模型的集大成者，它将基于
 CSP模型的并发编程内置到了语言中，通过一个go关键字就可以轻易地启动一个Goroutine，与Erlang不同的是Go语言的 Goroutine之间是共享内存的。
 
+> Do not communicate by sharing memory; instead, share memory by communicating. 不要通过共享内存来通信，而应通过通信来共享内存。
+
 ### Goroutine And System Thread
 
 Goroutine是Go语言特有的并发体，是一种轻量级的线程，由go关键字启动。在真实的Go语言的实现中，goroutine和系统线程也不是等价的。尽管两者的区别实 际上只是一个量的区别，但正是这个量变引发了Go语言并发编程质的飞跃。

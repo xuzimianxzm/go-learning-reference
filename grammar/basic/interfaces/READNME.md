@@ -7,9 +7,42 @@ type Animal interface {
 Bark() string
 Walk() string
 }
+
+type Dog struct {}
+
+func (d Dog) Bark() string {}
+
+func (d Dog) Walk() string {}
+
 ````
 
 > Note: 必须是同时实现 Bark() 和Walk() 方法，否则都不能算实现了Animal接口。
+
+### function implement interface
+
+Go语言中的所有类型都可以实现接口,函数作为Go语言中的一种类型，也不例外。
+
+```go
+type Printer interface {
+  Print(p interface{})
+}
+
+type FuncCaller func (p interface{})
+
+func (funcCaller FuncCaller) Print(p interface{}) {
+   funcCaller(p)
+}
+
+func main() {
+	var printer Printer
+	printer = FuncCaller(func (p interface{}) {
+		fmt.Println(p)
+    })
+	
+	printer.Print("Any thing");
+}
+
+```
 
 ### nil interface
 
