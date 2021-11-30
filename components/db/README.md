@@ -1,4 +1,21 @@
-## Introduction
+## database/sql
+
+Go官方提供了database/sql包来给用户进行和数据库打交道的工作，database/sql库实际只提供了一套操作数据库的接口和规范，例如抽象好的SQL预处理（prepare），连接池管理，数据绑定，事务，错误处理等等。官方并没有提供具体某种数据库实现的协议支持。
+
+### Introduction
+
+和具体的数据库，例如MySQL打交道，还需要再引入MySQL的驱动，像下面这样：
+
+```go
+import "database/sql"
+import _ "github.com/go-sql-driver/mysql"
+
+db, err := sql.Open("mysql", "user:password@/dbname")
+```
+
+## ORM
+
+### Introduction
 
 对象关系映射（英语：Object Relational Mapping，简称ORM，或O/RM，或O/R mapping）， 是一种程序设计技术，用于实现面向对象编程语言里不同类型系统的数据之间的转换。
 从效果上说，它其实是创建了一个可在编程语言里使用的“虚拟对象数据库”。
@@ -13,6 +30,7 @@
 > shopList = append(shopList, product.GetShop)
 > }
 > ```
+
 > 因为ORM一类的工具在出发点上就是屏蔽sql，让我们对数据库的操作更接近于人类的思维方式。这样很多只接触过ORM而且又是刚入行的程序员就很容易写出上面这样的代码。
 > 这样的代码将对数据库的读请求放大了N倍。也就是说，如果你的商品列表有15个SKU，那么每次用户打开这个页面，至少需要执行1（查询商品列表）+
 > 15（查询相关的商铺信息）次查询。这里N是16。如果你的列表页很大，比如说有600个条目，那么你就至少要执行1+600次查询。如果说你的数据库能够承受的最大的简单查询是12万QPS，而上述这样的查询正好是你最常用的查询的话，你能对外提供的服务能力是多少呢？是200 qps！互联网系统的忌讳之一，就是这种无端的读放大。
