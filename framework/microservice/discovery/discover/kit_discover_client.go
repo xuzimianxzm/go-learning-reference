@@ -103,6 +103,7 @@ func (consulClient *KitDiscoverClient) DiscoverServices(serviceName string, logg
 			params := make(map[string]interface{})
 			params["type"] = "service"
 			params["service"] = serviceName
+			// 监听 consul 服务端，并定义handler来处理接收到Producer 发现的 消息。
 			plan, _ := watch.Parse(params)
 			plan.Handler = func(u uint64, i interface{}) {
 				if i == nil {
