@@ -54,3 +54,16 @@
 - [DHT 磁力爬虫 (Go tool)](https://github.com/shiyanhui/dht/blob/master/README_CN.md)
 - [DHT 磁力爬虫 (Python tool)](https://github.com/chenjiandongx/magnet-dht)
 - [Go torrent-client](https://github.com/veggiedefender/torrent-client/)
+
+#### Questions
+
+1. Download files info of magnet URI
+   > torrent.GotInfo() and then torrent.Info()
+2. Download progress query
+
+- The progress of the file being downloaded
+- The download progress of the downloaded file has been interrupted
+
+3. How to resume the last download after the interruption
+4. The download real-time speed:
+   > Torrent.Stats.DataBytesRead
