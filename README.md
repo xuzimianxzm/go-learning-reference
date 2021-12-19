@@ -1,6 +1,6 @@
 # go-learning-reference
 
-## 介绍
+## Introduction
 
 - Standard Go Project Layout:https://github.com/golang-standards/project-layout/blob/master/README_zh.md
 - effective_go: https://golang.org/doc/effective_go
