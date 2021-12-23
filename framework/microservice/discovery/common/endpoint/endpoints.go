@@ -2,7 +2,7 @@ package endpoint
 
 import (
 	"context"
-	"discovery/service"
+	"discovery/common/service"
 	"github.com/go-kit/kit/endpoint"
 )
 

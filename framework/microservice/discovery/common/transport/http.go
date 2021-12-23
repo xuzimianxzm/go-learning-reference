@@ -2,7 +2,7 @@ package transport
 
 import (
 	"context"
-	endpts "discovery/endpoint"
+	endpts "discovery/common/endpoint"
 	"encoding/json"
 	"errors"
 	"github.com/go-kit/kit/log"

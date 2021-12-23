@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"discovery/config"
-	"discovery/discover"
-	"discovery/endpoint"
-	"discovery/service"
-	"discovery/transport"
+	"discovery/common/config"
+	discover2 "discovery/common/discover"
+	"discovery/common/endpoint"
+	"discovery/common/service"
+	"discovery/common/transport"
 	"flag"
 	"fmt"
 	uuid "github.com/satori/go.uuid"
@@ -36,9 +36,9 @@ func main() {
 	errChan := make(chan error)
 
 	// 声明服务发现客户端
-	var discoveryClient discover.DiscoveryClient
+	var discoveryClient discover2.DiscoveryClient
 
-	discoveryClient, err := discover.NewKitDiscoverClient(*consulHost, *consulPort)
+	discoveryClient, err := discover2.NewKitDiscoverClient(*consulHost, *consulPort)
 	// 获取服务发现客户端失败，直接关闭服务
 	if err != nil {
 		config.Logger.Println("Get Consul Client failed")

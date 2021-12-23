@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"discovery/config"
-	"discovery/discover"
+	"discovery/common/config"
+	"discovery/common/discover"
 	"errors"
 )
 

@@ -33,7 +33,7 @@ Go-kit是一套微服务工具集，用于帮助开发人员解决分布式系�
 
 ### 本项目定义了两套服务发现客户端
 
-- discover_client: 自定义服务发现与注册客户端接口层。
-- my_discover_client: 手动实现的consul交互细节的 服务发现与注册客户端。
-- kit_discover_client: 借用Go-kit 实现consul交互的 服务发现与注册客户端。
+- common/discover_client: 自定义服务发现与注册客户端接口层。
+- common/my_discover_client: 手动实现的consul交互细节的 服务发现与注册客户端。
+- common/kit_discover_client: 借用Go-kit 实现consul交互的 服务发现与注册客户端。
 - string=service: 基于discover_client提供的服务注册与发现能力搭建的微服务。

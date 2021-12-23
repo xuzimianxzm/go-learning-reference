@@ -2,9 +2,9 @@ package endpoint
 
 import (
 	"context"
+	"discovery/string-service/service"
 	"errors"
 	"github.com/go-kit/kit/endpoint"
-	"github.com/longjoy/micro-go-book/ch10-resiliency/string-service/service"
 	"strings"
 )
 
