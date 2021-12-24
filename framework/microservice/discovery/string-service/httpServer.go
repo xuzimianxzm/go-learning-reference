@@ -7,20 +7,11 @@ import (
 	"discovery/string-service/plugins"
 	"discovery/string-service/service"
 	"discovery/string-service/transport"
-	"flag"
 	"net/http"
 	"strconv"
 )
 
-func onlyStartASingleHttpService() {
-
-	// 获取命令行参数
-	var (
-		servicePort = flag.Int("service.port", 10085, "service port")
-	)
-
-	flag.Parse()
-
+func onlyStartASingleHttpService(servicePort *int) {
 	var svc service.Service
 	svc = service.StringService{}
 	// add logging middleware
@@ -43,5 +34,5 @@ func onlyStartASingleHttpService() {
 	//http server
 	config.Logger.Println("Http Server start at port:" + strconv.Itoa(*servicePort))
 	handler := r
-	http.ListenAndServe(":"+strconv.Itoa(*servicePort), handler)
+	errChan <- http.ListenAndServe(":"+strconv.Itoa(*servicePort), handler)
 }
