@@ -19,7 +19,10 @@ import (
 )
 
 func main() {
+	onlyStartASingleHttpService()
+}
 
+func startHttpServerAndRegisterServiceToConsul() {
 	// 获取命令行参数
 	var (
 		servicePort = flag.Int("service.port", 10085, "service port")
