@@ -25,10 +25,9 @@ func main() {
 	go onlyStartASingleHttpService(servicePort)
 	//go  startHttpServerAndRegisterServiceToConsul()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	errChan <- fmt.Errorf("%s", <-c)
-	os.Exit(-1)
+	go listenerExitCommand()
+
+	exit(nil, "")
 }
 
 func startHttpServerAndRegisterServiceToConsul() {
@@ -53,8 +52,23 @@ func startHttpServerAndRegisterServiceToConsul() {
 		}
 	}()
 
+	exit(discoveryClient, instanceId)
+}
+
+func exit(discoveryClient discover.DiscoveryClient, instanceId string) {
 	error := <-errChan
 	//服务退出取消注册
-	discoveryClient.DeRegister(instanceId, config.Logger)
-	config.Logger.Println(error)
+	if discoveryClient != nil {
+		discoveryClient.DeRegister(instanceId, config.Logger)
+		config.Logger.Println(error)
+	}
+	os.Exit(-1)
+}
+
+func listenerExitCommand() {
+	func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errChan <- fmt.Errorf("%s", <-c)
+	}()
 }
